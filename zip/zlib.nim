@@ -252,6 +252,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
     while true:
       # Allocate more output space if none left.
       if space == have:
+        decompressed.setLen(space)
         # Double space, handle overflow.
         space = space shl 1
         if space < have:
