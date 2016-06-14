@@ -14,3 +14,6 @@ test "zipfiles extractAll":
     quit(1)
   z.extractAll("files/td")
   z.close()
+  check existsDir("files/td/xl/worksheets")
+  check existsFile("files/td/xl/worksheets/sheet1.xml")
+
