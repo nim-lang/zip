@@ -1,4 +1,4 @@
-import os, osproc, unittest, ../zip/zipfiles
+import os, osproc, streams, unittest, ../zip/zipfiles
 
 const path = splitPath(currentSourcePath()).head & "/../zip/zipfiles"
 
@@ -17,3 +17,20 @@ test "zipfiles extractAll":
   check existsDir("files/td/xl/worksheets")
   check existsFile("files/td/xl/worksheets/sheet1.xml")
 
+test "zipfiles read and write with Stream":
+  let filename = getTempDir() / "zipfiles_test_archive.zip"
+  filename.removeFile
+
+  var z: ZipArchive
+  require z.open(filename, fmWrite)
+  z.addFile("foo.bar", newStringStream("content"))
+  z.close
+
+  check: filename.existsFile
+
+  require z.open(filename, fmRead)
+  let outStream = newStringStream("")
+  z.extractFile("foo.bar", outStream)
+  z.close()
+
+  check: outStream.data == "content"

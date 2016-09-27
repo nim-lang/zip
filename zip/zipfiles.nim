@@ -93,7 +93,12 @@ proc mySourceCallback(state, data: pointer, len: int,
     err[1] = 0
     result = 2*sizeof(cint)
   of constZIP_SOURCE_FREE: GC_unref(src)
-  else: assert(false)
+  of ZIP_SOURCE_SUPPORTS:
+    # By default a read-only source is supported, which suits us.
+    result = -1
+  else:
+    # An unknown command, failing
+    result = -1
 
 proc addFile*(z: var ZipArchive, dest: string, src: Stream) =
   ## Adds a file named with `dest` to the archive `z`. `dest`
