@@ -167,6 +167,7 @@ const
   ZIP_SOURCE_STAT* = 3'i32        ## get meta information
   ZIP_SOURCE_ERROR* = 4'i32       ## get error information
   constZIP_SOURCE_FREE* = 5'i32   ## cleanup and free resources
+  ZIP_SOURCE_SUPPORTS* = 14'i32   ## check supported commands
 
 proc zip_add*(para1: PZip, para2: cstring, para3: PZipSource): int32 {.cdecl,
     importc: "zip_add", mydll.}
