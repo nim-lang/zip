@@ -17,16 +17,16 @@ test "zipfiles extractAll":
   check existsDir("files/td/xl/worksheets")
   check existsFile("files/td/xl/worksheets/sheet1.xml")
 
-test "zipfiles read and write with Stream":
+test "zipfiles read and write using Stream":
   let filename = getTempDir() / "zipfiles_test_archive.zip"
-  filename.removeFile
+  defer: filename.removeFile
 
   var z: ZipArchive
   require z.open(filename, fmWrite)
   z.addFile("foo.bar", newStringStream("content"))
   z.close
 
-  check: filename.existsFile
+  require filename.existsFile
 
   require z.open(filename, fmRead)
   let outStream = newStringStream("")
