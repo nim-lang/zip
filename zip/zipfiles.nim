@@ -165,6 +165,8 @@ proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: string) =
   ## extracts a file from the zip archive `z` to the destination filename.
   var file = newFileStream(dest, fmWrite)
+  if file.isNil:
+    raise newException(IOError, "Failed to create output file: " & dest)
   extractFile(z, srcFile, file)
   file.close()
 
