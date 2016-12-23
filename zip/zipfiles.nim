@@ -12,6 +12,8 @@
 import
   streams, libzip, times, os, strutils
 
+const BufSize = 8 * 1024
+
 type
   ZipArchive* = object of RootObj ## represents a zip archive
     mode: FileMode
@@ -156,14 +158,15 @@ iterator walkFiles*(z: var ZipArchive): string =
     yield $zip_get_name(z.w, i, 0'i32)
     inc(i)
 
-
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   ## extracts a file from the zip archive `z` to the destination stream.
+  var buf: array[BufSize, byte]
   var strm = getStream(z, srcFile)
   while true:
-    if not strm.atEnd:
-        dest.write(strm.readStr(1))
-    else: break
+    let bytesRead = strm.readData(addr(buf[0]), buf.len)
+    if bytesRead <= 0: break
+    dest.writeData(addr(buf[0]), bytesRead)
+
   dest.flush()
   strm.close()
 
