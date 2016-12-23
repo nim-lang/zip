@@ -158,15 +158,14 @@ iterator walkFiles*(z: var ZipArchive): string =
     yield $zip_get_name(z.w, i, 0'i32)
     inc(i)
 
-
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   ## extracts a file from the zip archive `z` to the destination stream.
   var buf: array[BufSize, byte]
   var strm = getStream(z, srcFile)
-  while not strm.atEnd:
+  while true:
     let bytesRead = strm.readData(addr(buf[0]), buf.len)
-    if bytesRead > 0:
-      dest.writeData(addr(buf[0]), bytesRead)
+    if bytesRead <= 0: break
+    dest.writeData(addr(buf[0]), bytesRead)
 
   dest.flush()
   strm.close()
