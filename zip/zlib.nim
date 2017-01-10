@@ -70,6 +70,7 @@ const
   Z_UNKNOWN* = 2
   Z_DEFLATED* = 8
   Z_NULL* = 0
+  Z_MEM_LEVEL* = 8
 
 proc zlibVersion*(): cstring{.cdecl, dynlib: libz, importc: "zlibVersion".}
 proc deflate*(strm: var ZStream, flush: int32): int32{.cdecl, dynlib: libz, 
@@ -163,6 +164,9 @@ proc inflateSyncPoint*(z: PZstream): int32{.cdecl, dynlib: libz,
     importc: "inflateSyncPoint".}
 proc getCrcTable*(): pointer{.cdecl, dynlib: libz, importc: "get_crc_table".}
 
+proc deflateBound*(strm: var ZStream, sourceLen: ULong): ULong {.cdecl,
+        dynlib: libz, importc: "deflateBound".}
+
 proc deflateInit(strm: var ZStream, level: int32): int32 = 
   result = deflateInitu(strm, level, zlibVersion(), sizeof(ZStream).cint)
 
@@ -185,8 +189,60 @@ proc zlibAllocMem*(appData: pointer, items, size: int): pointer {.cdecl.} =
 proc zlibFreeMem*(appData, `block`: pointer) {.cdecl.} = 
   dealloc(`block`)
 
+
+proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION): string =
+  ## Given a buffer, returns its deflated version insert a GZIP header/footer.
+  ##
+  ## Passing a nil cstring will crash this proc in release mode and assert in
+  ## debug mode.
+  ##
+  ## Compression level can be set with ``level`` argument. Currently
+  ## ``Z_DEFAULT_COMPRESSION`` is 6.
+  ##
+  ## Returns nil on failure.
+  var z: ZStream
+
+  var status = deflateInit2(z, level.int32, Z_DEFLATED.int32,
+                               (15+16).int32, Z_MEM_LEVEL.int32,
+                               Z_DEFAULT_STRATEGY.int32)
+
+  if status != Z_OK:
+    # Out of memory.
+    return
+
+  let space = deflateBound(z, sourceLen)
+
+  var compressed = newStringOfCap(space)
+  z.next_in = sourceBuf
+  z.avail_in = sourceLen.Uint
+  z.next_out = addr(compressed[0])
+  z.avail_out = space.Uint
+
+  defer: discard deflateEnd(z)
+
+  status = deflate(z, Z_FINISH)
+
+  if status != Z_STREAM_END:
+    # Incomplete stream.
+    return
+
+  compressed.setLen(z.total_out)
+  swap(result, compressed)
+
+proc compress*(sourceBuf: string; level=Z_DEFAULT_COMPRESSION): string =
+  ## Given a string, returns its deflated version and insert a GZIP header/footer.
+  ##
+  ## Passing a nil string will crash this proc in release mode and assert in
+  ## debug mode.
+  ##
+  ## Compression level can be set with ``level`` argument. Currently
+  ## ``Z_DEFAULT_COMPRESSION`` is 6.
+  ##
+  ## Returns nil on failure.
+  result = compress(sourceBuf, sourceBuf.len, level)
+
 proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
-  ## Given a deflated cstring returns its inflated version.
+  ## Given a GZIP-ed buffer returns its inflated content as a string.
   ##
   ## Passing a nil cstring will crash this proc in release mode and assert in
   ## debug mode.
@@ -297,8 +353,35 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
   swap(result, decompressed)
 
 
+proc uncompress*(sourceBuf: string): string =
+  ## Given a GZIP-ed string return its inflated content.
+  ## Passing a nil string will crash this proc in release mode and assert in
+  ## debug mode.
+  ##
+  ## Returns nil on failure.
+  result = uncompress(sourceBuf, sourceBuf.len)
+
+
+
+proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION): bool {.discardable.} =
+  ## Convenience proc which deflates a string and insert a GZIP header/footer.
+  ##
+  ## Passing a nil string will crash this proc in release mode and assert in
+  ## debug mode.
+  ##
+  ## Compression level can be set with ``level`` argument. Currently
+  ## ``Z_DEFAULT_COMPRESSION`` is 6.
+  ##
+  ## Returns true if `buffer` was successfully deflated otherwise the buffer is untouched.
+  assert(not buffer.isNil)
+  if buffer.len < 1: return
+  var temp = compress(addr(buffer[0]), buffer.len, level)
+  if not temp.isNil:
+    swap(buffer, temp)
+    result = true
+
 proc inflate*(buffer: var string): bool {.discardable.} =
-  ## Convenience proc which inflates a string containing compressed data.
+  ## Convenience proc which inflates a string containing GZIP-ed compressed data.
   ##
   ## Passing a nil string will crash this proc in release mode and assert in
   ## debug mode. It is ok to pass a buffer which doesn't contain deflated data,
