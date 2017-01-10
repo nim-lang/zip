@@ -40,6 +40,11 @@ type
   ZStreamRec* = ZStream
   PZstream* = ptr ZStream
   GzFile* = pointer
+  ZStreamHeader* = enum
+    DETECT_STREAM,
+    RAW_DEFLATE,
+    ZLIB_STREAM,
+    GZIP_STREAM
 {.deprecated: [TInternalState: InternalState, TAllocfunc: Allocfunc,
               TFreeFunc: FreeFunc, TZStream: ZStream, TZStreamRec: ZStreamRec].}
 
@@ -71,6 +76,7 @@ const
   Z_DEFLATED* = 8
   Z_NULL* = 0
   Z_MEM_LEVEL* = 8
+  MAX_WBITS* = 15
 
 proc zlibVersion*(): cstring{.cdecl, dynlib: libz, importc: "zlibVersion".}
 proc deflate*(strm: var ZStream, flush: int32): int32{.cdecl, dynlib: libz, 
@@ -190,8 +196,12 @@ proc zlibFreeMem*(appData, `block`: pointer) {.cdecl.} =
   dealloc(`block`)
 
 
-proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION): string =
-  ## Given a buffer, returns its deflated version insert a GZIP header/footer.
+proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREAM): string =
+  ## Given a cstring, returns its deflated version with an optional header.
+  ## Valid argument for ``stream`` are:
+  ##  ZLIB_STREAM - add a zlib header and footer.
+  ##  GZIP_STREAM - add a basic gzip header and footer.
+  ##  RAW_DEFLATE - no header is generated.
   ##
   ## Passing a nil cstring will crash this proc in release mode and assert in
   ## debug mode.
@@ -202,8 +212,15 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION):
   ## Returns nil on failure.
   var z: ZStream
 
+  var windowBits = MAX_WBITS
+  case (stream)
+  of RAW_DEFLATE: windowBits = -MAX_WBITS
+  of GZIP_STREAM: windowBits = MAX_WBITS + 16
+  of ZLIB_STREAM, DETECT_STREAM:
+    discard # DETECT_STREAM defaults to ZLIB_STREAM
+
   var status = deflateInit2(z, level.int32, Z_DEFLATED.int32,
-                               (15+16).int32, Z_MEM_LEVEL.int32,
+                               windowBits.int32, Z_MEM_LEVEL.int32,
                                Z_DEFAULT_STRATEGY.int32)
 
   if status != Z_OK:
@@ -229,8 +246,12 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION):
   compressed.setLen(z.total_out)
   swap(result, compressed)
 
-proc compress*(sourceBuf: string; level=Z_DEFAULT_COMPRESSION): string =
-  ## Given a string, returns its deflated version and insert a GZIP header/footer.
+proc compress*(sourceBuf: string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREAM): string =
+  ## Given a string, returns its deflated version with an optional header.
+  ## Valid argument for ``stream`` are:
+  ##  ZLIB_STREAM - add a zlib header and footer.
+  ##  GZIP_STREAM - add a basic gzip header and footer.
+  ##  RAW_DEFLATE - no header is generated.
   ##
   ## Passing a nil string will crash this proc in release mode and assert in
   ## debug mode.
@@ -239,10 +260,10 @@ proc compress*(sourceBuf: string; level=Z_DEFAULT_COMPRESSION): string =
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
   ## Returns nil on failure.
-  result = compress(sourceBuf, sourceBuf.len, level)
+  result = compress(sourceBuf, sourceBuf.len, level, stream)
 
-proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
-  ## Given a GZIP-ed buffer returns its inflated content as a string.
+proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): string =
+  ## Given a deflated buffer returns its inflated content as a string.
   ##
   ## Passing a nil cstring will crash this proc in release mode and assert in
   ## debug mode.
@@ -282,9 +303,16 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
   # Output generated so far.
   var have = 0
 
-  # Set up for gzip decoding.
+
+  var windowBits = MAX_WBITS
+  case (stream)
+  of RAW_DEFLATE: windowBits = -MAX_WBITS
+  of ZLIB_STREAM: windowBits = MAX_WBITS
+  of GZIP_STREAM: windowBits = MAX_WBITS + 16
+  of DETECT_STREAM: windowBits = MAX_WBITS + 32
+
   z.availIn = 0;
-  var status = inflateInit2(z, (15+16))
+  var status = inflateInit2(z, windowBits.int32)
   if status != Z_OK:
     # Out of memory.
     return
@@ -346,25 +374,29 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int): string =
 
   # Verify that the input is a valid gzip stream.
   if status != Z_STREAM_END:
-    # Incomplete gzip stream.
+    # Incomplete stream.
     return
 
   decompressed.setLen(have)
   swap(result, decompressed)
 
 
-proc uncompress*(sourceBuf: string): string =
+proc uncompress*(sourceBuf: string; stream=DETECT_STREAM): string =
   ## Given a GZIP-ed string return its inflated content.
   ## Passing a nil string will crash this proc in release mode and assert in
   ## debug mode.
   ##
   ## Returns nil on failure.
-  result = uncompress(sourceBuf, sourceBuf.len)
+  result = uncompress(sourceBuf, sourceBuf.len, stream)
 
 
 
-proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION): bool {.discardable.} =
-  ## Convenience proc which deflates a string and insert a GZIP header/footer.
+proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREAM): bool {.discardable.} =
+  ## Convenience proc which deflates a string and insert an optional header/footer.
+  ## Valid argument for ``stream`` are:
+  ##   - ZLIB_STREAM - add a zlib header and footer.
+  ##   - GZIP_STREAM - add a basic gzip header and footer.
+  ##   - RAW_DEFLATE - no header is generated.
   ##
   ## Passing a nil string will crash this proc in release mode and assert in
   ## debug mode.
@@ -375,13 +407,20 @@ proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION): bool {.discardab
   ## Returns true if `buffer` was successfully deflated otherwise the buffer is untouched.
   assert(not buffer.isNil)
   if buffer.len < 1: return
-  var temp = compress(addr(buffer[0]), buffer.len, level)
+  var temp = compress(addr(buffer[0]), buffer.len, level, stream)
   if not temp.isNil:
     swap(buffer, temp)
     result = true
 
-proc inflate*(buffer: var string): bool {.discardable.} =
-  ## Convenience proc which inflates a string containing GZIP-ed compressed data.
+proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
+  ## Convenience proc which inflates a string containing compressed data
+  ## with an optional header.
+  ##  Valid argument for ``stream`` are:
+  ##   - DETECT_STREAM - detect if zlib or gzip header is present
+  ##                      and decompress stream. Fail on raw deflate stream.
+  ##   - ZLIB_STREAM - decompress a zlib stream.
+  ##   - GZIP_STREAM - decompress a gzip stream.
+  ##   - RAW_DEFLATE - decompress a raw deflate stream.
   ##
   ## Passing a nil string will crash this proc in release mode and assert in
   ## debug mode. It is ok to pass a buffer which doesn't contain deflated data,
@@ -390,7 +429,7 @@ proc inflate*(buffer: var string): bool {.discardable.} =
   ## Returns true if `buffer` was successfully inflated.
   assert (not buffer.isNil)
   if buffer.len < 1: return
-  var temp = uncompress(addr(buffer[0]), buffer.len)
+  var temp = uncompress(addr(buffer[0]), buffer.len, stream)
   if not temp.isNil:
     swap(buffer, temp)
     result = true
