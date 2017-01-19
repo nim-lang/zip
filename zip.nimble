@@ -12,3 +12,4 @@ requires "nim >= 0.10.0"
 task tests, "Run lib tests":
   withDir "tests":
     exec "nim c -r ziptests"
+    exec "nim c -r zlibtests"
