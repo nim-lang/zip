@@ -281,112 +281,79 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): stri
   ## passing a non deflated string, or it could mean not having enough memory
   ## for the inflated version.
   ##
-  ## The uncompression algorithm is based on
-  ## http://stackoverflow.com/questions/17820664 but does ignore some of the
-  ## original signed/unsigned checks, so may fail with big chunks of data
-  ## exceeding the positive size of an int32. The algorithm can deal with
-  ## concatenated deflated values properly.
+  ## The uncompression algorithm is based on http://zlib.net/zpipe.c.
   assert (not sourceBuf.isNil)
+  var strm: ZStream
+  var decompressed: string = ""
+  var sbytes = 0
+  var wbytes = 0
+  ##  allocate inflate state
 
-  var z: ZStream
-  # Initialize input.
-  z.nextIn = sourceBuf
+  strm.availIn = 0
+  var wbits = case (stream)
+  of RAW_DEFLATE:  -MAX_WBITS
+  of ZLIB_STREAM:   MAX_WBITS
+  of GZIP_STREAM:   MAX_WBITS + 16
+  of DETECT_STREAM: MAX_WBITS + 32
 
-  # Input left to decompress.
-  var left = zlib.Uint(sourceLen)
-  if left < 1:
-    # Incomplete gzip stream, or overflow?
-    return
-
-  # Create starting space for output (guess double the input size, will grow if
-  # needed -- in an extreme case, could end up needing more than 1000 times the
-  # input size)
-  var space = zlib.Uint(left shl 1)
-  if space < left:
-    space = left
-
-  var decompressed = newStringOfCap(space)
-
-  # Initialize output.
-  z.nextOut = addr(decompressed[0])
-  # Output generated so far.
-  var have = 0
-
-
-  var windowBits = MAX_WBITS
-  case (stream)
-  of RAW_DEFLATE: windowBits = -MAX_WBITS
-  of ZLIB_STREAM: windowBits = MAX_WBITS
-  of GZIP_STREAM: windowBits = MAX_WBITS + 16
-  of DETECT_STREAM: windowBits = MAX_WBITS + 32
-
-  z.availIn = 0;
-  var status = inflateInit2(z, windowBits.int32)
+  var status = inflateInit2(strm, wbits.int32)
   if status != Z_OK:
-    # Out of memory.
     return
 
-  # Make sure memory allocated by inflateInit2() is freed eventually.
-  defer: discard inflateEnd(z)
-
-  # Decompress all of self.
+  # run loop until all input is consumed.
+  # handle concatenated deflated stream with header.
   while true:
-    # Allow for concatenated gzip streams (per RFC 1952).
-    if status == Z_STREAM_END:
-      discard inflateReset(z)
+    strm.availIn = (sourceLen - sbytes).int32
 
-    # Provide input for inflate.
-    if z.availIn == 0:
-      # This only makes sense in the C version using unsigned values.
-      z.availIn = left
-      left -= z.availIn
+    # no more input available
+    if (sourceLen - sbytes) <= 0: break
+    strm.nextIn = sourceBuf[sbytes].unsafeaddr
 
-    # Decompress the available input.
+    #  run inflate() on available input until output buffer is full
     while true:
-      # Allocate more output space if none left.
-      if space == have:
-        decompressed.setLen(space)
-        # Double space, handle overflow.
-        space = space shl 1
-        if space < have:
-          # Space was likely already maxed out.
-          discard inflateEnd(z)
-          return
+      # if written bytes >= output size : resize output
+      if wbytes >= decompressed.len:
+        let cur_outlen = decompressed.len
+        let new_outlen = if decompressed.len == 0: sourceLen*2 else: decompressed.len*2
+        if new_outlen < cur_outlen: # unsigned integer overflow, buffer too big
+          discard inflateEnd(strm); return
 
-        # Increase space.
-        decompressed.setLen(space)
-        # Update output pointer (might have moved).
-        z.nextOut = addr(decompressed[have])
+        decompressed.setLen(new_outlen)
+      # available space for decompression
+      let space = decompressed.len - wbytes
+      strm.availOut = space.Uint
+      strm.nextOut = decompressed[wbytes].addr
 
-      # Provide output space for inflate.
-      z.availOut = zlib.Uint(space - have)
-      have += z.availOut;
+      status = inflate(strm, Z_NO_FLUSH)
 
-      # Inflate and update the decompressed size.
-      status = inflate(z, Z_SYNC_FLUSH);
-      have -= z.availOut;
-
-      # Bail out if any errors.
-      if status != Z_OK and status != Z_BUF_ERROR and status != Z_STREAM_END:
-        # Invalid gzip stream.
-        discard inflateEnd(z)
+      case status # check state
+      of Z_DATA_ERROR, Z_MEM_ERROR, Z_STREAM_ERROR:
+        discard inflateEnd(strm)
         return
+      else: # Z_OK, Z_STREAM_END
+        discard
+      # add written bytes, if any.
+      wbytes += space - strm.availOut.int
 
-      # Repeat until all output is generated from provided input (note
-      # that even if z.avail_in is zero, there may still be pending
-      # output -- we're not done until the output buffer isn't filled)
-      if z.availOut != 0:
-        break
-    # Continue until all input consumed.
-    if left == 0 and z.availIn == 0:
-      break
+      # may need more input
+      if not (strm.availOut == 0): break
 
-  # Verify that the input is a valid gzip stream.
+    #  inflate() says stream is done
+    if (status == Z_STREAM_END):
+      # may have another stream concatenated
+      if strm.availIn != 0:
+        sbytes = sourceLen - strm.availIn # add consumed bytes
+        discard inflateReset(strm) # reset zlib struct and try again
+      else:
+        break # end of decompression
+
+  #  clean up and return
+  discard inflateEnd(strm)
+
   if status != Z_STREAM_END:
-    # Incomplete stream.
     return
 
-  decompressed.setLen(have)
+  decompressed.setLen(wbytes)
   swap(result, decompressed)
 
 
