@@ -10,11 +10,11 @@ else:
   const libz = "libz.so.1"
 
 type
-  Uint* = int32
-  Ulong* = int
-  Ulongf* = int
+  Uint* = cuint
+  Ulong* = culong
+  Ulongf* = culong
   Pulongf* = ptr Ulongf
-  ZOffT* = int32
+  ZOffT* = clong
   Pbyte* = cstring
   Pbytef* = cstring
   Allocfunc* = proc (p: pointer, items: Uint, size: Uint): pointer{.cdecl.}
@@ -33,7 +33,7 @@ type
     zalloc*: Allocfunc
     zfree*: FreeFunc
     opaque*: pointer
-    dataType*: int32
+    dataType*: cint
     adler*: Ulong
     reserved*: Ulong
 
@@ -227,7 +227,7 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
     # Out of memory.
     return
 
-  let space = deflateBound(z, sourceLen)
+  let space = deflateBound(z, sourceLen.Uint)
 
   var compressed = newStringOfCap(space)
   z.next_in = sourceBuf
@@ -335,11 +335,11 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): stri
     # Decompress the available input.
     while true:
       # Allocate more output space if none left.
-      if space == have:
+      if int(space) == have:
         decompressed.setLen(space)
         # Double space, handle overflow.
         space = space shl 1
-        if space < have:
+        if int(space) < have:
           # Space was likely already maxed out.
           discard inflateEnd(z)
           return
@@ -350,12 +350,12 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): stri
         z.nextOut = addr(decompressed[have])
 
       # Provide output space for inflate.
-      z.availOut = zlib.Uint(space - have)
-      have += z.availOut;
+      z.availOut = zlib.Uint(int(space) - have)
+      have += int(z.availOut)
 
       # Inflate and update the decompressed size.
-      status = inflate(z, Z_SYNC_FLUSH);
-      have -= z.availOut;
+      status = inflate(z, Z_SYNC_FLUSH)
+      have -= int(z.availOut)
 
       # Bail out if any errors.
       if status != Z_OK and status != Z_BUF_ERROR and status != Z_STREAM_END:
