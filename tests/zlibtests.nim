@@ -21,6 +21,11 @@ test "test stream compression":
     # zlib stream of text3. (encoded with UTF-8)
     let zlib_deflate3 = "x\x9c-\xc8\xeb\x11CP\x18\x06\xe1V\xbe\x02Rd\xc4\x9d`\x94\xa0\x83\xe3r&\x08\xd2\xc2\xbe\x1d1&\xbfv\x9e\xa5S\x81W\xa6\xb7]\xc9\xd5\x9a*\xbd\x98\x15\x1b\x9b\x1aF\xd6\x1b\x8a\xf4\xc4\xb1+Q\xc8G\xc1\x7f\xd3_\xfcr\xb0>\x8c\tg\x0c*\xf9\xe1YL)N\xf5\t_\x12@\xa8"
 
+    # generated from empty string
+    let raw_deflate_empty="\x03\x00"
+    let gzip_deflate_empty="\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+    let zlib_deflate_empty="x\x9c\x03\x00\x00\x00\x00\x01"
+
     check uncompress(compress(text)) == text
     check uncompress(compress(text, stream=RAW_DEFLATE), stream=RAW_DEFLATE) == text
     check uncompress(compress(text, stream=ZLIB_STREAM), stream=ZLIB_STREAM) == text
@@ -42,3 +47,8 @@ test "test stream compression":
     # check support for uncompression for large array
     check uncompress(encoded_data).len == 160000
 
+    # check support for empty string
+    check uncompress(compress("")) == ""
+    check compress("", stream=RAW_DEFLATE) == raw_deflate_empty
+    check compress("", stream=GZIP_STREAM) == gzip_deflate_empty
+    check compress("", stream=ZLIB_STREAM) == zlib_deflate_empty

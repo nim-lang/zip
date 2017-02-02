@@ -45,6 +45,9 @@ type
     RAW_DEFLATE,
     ZLIB_STREAM,
     GZIP_STREAM
+
+  ZlibStreamError* = object of Exception
+
 {.deprecated: [TInternalState: InternalState, TAllocfunc: Allocfunc,
               TFreeFunc: FreeFunc, TZStream: ZStream, TZStreamRec: ZStreamRec].}
 
@@ -211,8 +214,10 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
   ## Returns nil on failure.
-  var z: ZStream
+  assert(not sourceBuf.isNil)
+  assert(sourceLen >= 0)
 
+  var z: ZStream
   var windowBits = MAX_WBITS
   case (stream)
   of RAW_DEFLATE: windowBits = -MAX_WBITS
@@ -223,26 +228,28 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   var status = deflateInit2(z, level.int32, Z_DEFLATED.int32,
                                windowBits.int32, Z_MEM_LEVEL.int32,
                                Z_DEFAULT_STRATEGY.int32)
-
-  if status != Z_OK:
-    # Out of memory.
-    return
+  case status
+  of Z_OK: discard
+  of Z_MEM_ERROR: raise newException(OutOfMemError, "")
+  of Z_STREAM_ERROR: raise newException(ZlibStreamError, "invalid zlib stream parameter!")
+  of Z_VERSION_ERROR: raise newException(ZlibStreamError, "zlib version mismatch!")
+  else: raise newException(ZlibStreamError, "Unkown error(" & $status & ") : " & $z.msg)
 
   let space = deflateBound(z, sourceLen)
-
   var compressed = newStringOfCap(space)
   z.next_in = sourceBuf
   z.avail_in = sourceLen.Uint
   z.next_out = addr(compressed[0])
   z.avail_out = space.Uint
 
-  defer: discard deflateEnd(z)
-
   status = deflate(z, Z_FINISH)
-
   if status != Z_STREAM_END:
-    # Incomplete stream.
-    return
+    discard deflateEnd(z) # cleanup allocated ressources
+    raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
+
+  status = deflateEnd(z)
+  if status != Z_OK: # cleanup allocated ressources
+    raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
 
   compressed.setLen(z.total_out)
   swap(result, compressed)
@@ -264,7 +271,7 @@ proc compress*(input: string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREAM): 
   ## Returns nil on failure.
   result = compress(input, input.len, level, stream)
 
-proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): string =
+proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): string =
   ## Given a deflated buffer returns its inflated content as a string.
   ##
   ## Valid arguments for ``stream`` are
@@ -282,32 +289,40 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): stri
   ## for the inflated version.
   ##
   ## The uncompression algorithm is based on http://zlib.net/zpipe.c.
-  assert (not sourceBuf.isNil)
-  var strm: ZStream
+  assert(not sourceBuf.isNil)
+  assert(sourceLen >= 0)
+  var z: ZStream
   var decompressed: string = ""
   var sbytes = 0
   var wbytes = 0
   ##  allocate inflate state
 
-  strm.availIn = 0
+  z.availIn = 0
   var wbits = case (stream)
   of RAW_DEFLATE:  -MAX_WBITS
   of ZLIB_STREAM:   MAX_WBITS
   of GZIP_STREAM:   MAX_WBITS + 16
   of DETECT_STREAM: MAX_WBITS + 32
 
-  var status = inflateInit2(strm, wbits.int32)
+  var status = inflateInit2(z, wbits.int32)
   if status != Z_OK:
     return
+
+  case status
+  of Z_OK: discard
+  of Z_MEM_ERROR: raise newException(OutOfMemError, "")
+  of Z_STREAM_ERROR: raise newException(ZlibStreamError, "invalid zlib stream parameter!")
+  of Z_VERSION_ERROR: raise newException(ZlibStreamError, "zlib version mismatch!")
+  else: raise newException(ZlibStreamError, "Unkown error(" & $status & ") : " & $z.msg)
 
   # run loop until all input is consumed.
   # handle concatenated deflated stream with header.
   while true:
-    strm.availIn = (sourceLen - sbytes).int32
+    z.availIn = (sourceLen - sbytes).int32
 
     # no more input available
     if (sourceLen - sbytes) <= 0: break
-    strm.nextIn = sourceBuf[sbytes].unsafeaddr
+    z.nextIn = sourceBuf[sbytes].unsafeaddr
 
     #  run inflate() on available input until output buffer is full
     while true:
@@ -315,43 +330,46 @@ proc uncompress*(sourceBuf: cstring, sourceLen: int; stream=DETECT_STREAM): stri
       if wbytes >= decompressed.len:
         let cur_outlen = decompressed.len
         let new_outlen = if decompressed.len == 0: sourceLen*2 else: decompressed.len*2
-        if new_outlen < cur_outlen: # unsigned integer overflow, buffer too big
-          discard inflateEnd(strm); return
+        if new_outlen < cur_outlen: # unsigned integer overflow, buffer too large
+          discard inflateEnd(z);
+          raise newException(OverflowError, "zlib stream decompressed size is too large! (size > " & $int.high & ")")
 
         decompressed.setLen(new_outlen)
+
       # available space for decompression
       let space = decompressed.len - wbytes
-      strm.availOut = space.Uint
-      strm.nextOut = decompressed[wbytes].addr
+      z.availOut = space.Uint
+      z.nextOut = decompressed[wbytes].addr
 
-      status = inflate(strm, Z_NO_FLUSH)
+      status = inflate(z, Z_NO_FLUSH)
+      if status.int8 notin {Z_OK.int8, Z_STREAM_END.int8, Z_BUF_ERROR.int8}:
+        discard inflateEnd(z)
+        case status
+        of Z_MEM_ERROR: raise newException(OutOfMemError, "")
+        of Z_DATA_ERROR: raise newException(ZlibStreamError, "invalid zlib stream parameter!")
+        else: raise newException(ZlibStreamError, "Unkown error(" & $status & ") : " & $z.msg)
 
-      case status # check state
-      of Z_DATA_ERROR, Z_MEM_ERROR, Z_STREAM_ERROR:
-        discard inflateEnd(strm)
-        return
-      else: # Z_OK, Z_STREAM_END
-        discard
       # add written bytes, if any.
-      wbytes += space - strm.availOut.int
+      wbytes += space - z.availOut.int
 
       # may need more input
-      if not (strm.availOut == 0): break
+      if not (z.availOut == 0): break
 
     #  inflate() says stream is done
     if (status == Z_STREAM_END):
       # may have another stream concatenated
-      if strm.availIn != 0:
-        sbytes = sourceLen - strm.availIn # add consumed bytes
-        discard inflateReset(strm) # reset zlib struct and try again
+      if z.availIn != 0:
+        sbytes = sourceLen - z.availIn # add consumed bytes
+        if inflateReset(z) != Z_OK: # reset zlib struct and try again
+          raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
       else:
         break # end of decompression
 
-  #  clean up and return
-  discard inflateEnd(strm)
+  #  clean up and don't care about any error
+  discard inflateEnd(z)
 
   if status != Z_STREAM_END:
-    return
+    raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
 
   decompressed.setLen(wbytes)
   swap(result, decompressed)
@@ -391,7 +409,6 @@ proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREA
   ##
   ## Returns true if `buffer` was successfully deflated otherwise the buffer is untouched.
   assert(not buffer.isNil)
-  if buffer.len < 1: return
   var temp = compress(addr(buffer[0]), buffer.len, level, stream)
   if not temp.isNil:
     swap(buffer, temp)
@@ -413,8 +430,7 @@ proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
   ## in this case the proc won't modify the buffer.
   ##
   ## Returns true if `buffer` was successfully inflated.
-  assert (not buffer.isNil)
-  if buffer.len < 1: return
+  assert(not buffer.isNil)
   var temp = uncompress(addr(buffer[0]), buffer.len, stream)
   if not temp.isNil:
     swap(buffer, temp)
