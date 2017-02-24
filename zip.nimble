@@ -13,3 +13,4 @@ task tests, "Run lib tests":
   withDir "tests":
     exec "nim c -r ziptests"
     exec "nim c -r zlibtests"
+    exec "nim c -r gziptests"
