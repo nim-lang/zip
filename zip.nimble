@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.1"
+version       = "0.2.1"
 author        = "Anonymous"
 description   = "Wrapper for the zip library"
 license       = "MIT"
