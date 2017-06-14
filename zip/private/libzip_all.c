@@ -17,7 +17,7 @@
   3. The names of the authors may not be used to endorse or promote
      products derived from this software without specific prior
      written permission.
- 
+
   THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS
   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -58,7 +58,7 @@
   3. The names of the authors may not be used to endorse or promote
      products derived from this software without specific prior
      written permission.
- 
+
   THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS
   OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -456,10 +456,10 @@ struct zip_file {
     myoff_t fpos;                        /* position within zip file (fread/fwrite) */
     unsigned long bytes_left;        /* number of bytes left to read */
     unsigned long cbytes_left;  /* number of bytes of compressed data left */
-    
+
     unsigned long crc;                /* CRC so far */
     unsigned long crc_orig;        /* CRC recorded in archive */
-    
+
     char *buffer;
     z_stream *zstr;
 };
@@ -575,7 +575,7 @@ int _zip_set_name(struct zip *, int, const char *);
 int _zip_unchange(struct zip *, int, int);
 void _zip_unchange_data(struct zip_entry *);
 
-         
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -596,7 +596,7 @@ _zip_error_strerror(struct zip_error *err)
     }
     else {
         zs = _zip_err_str[err->zip_err];
-        
+
         switch (_zip_err_type[err->zip_err]) {
         case ZIP_ET_SYS:
             ss = strerror(err->sys_err);
@@ -617,7 +617,7 @@ _zip_error_strerror(struct zip_error *err)
         if ((s=(char *)malloc(strlen(ss)
                               + (zs ? strlen(zs)+2 : 0) + 1)) == NULL)
             return _zip_err_str[ZIP_ER_MEMORY];
-        
+
         sprintf(s, "%s%s%s",
                 (zs ? zs : ""),
                 (zs ? ": " : ""),
@@ -713,7 +713,7 @@ _zip_error_set(struct zip_error *err, int ze, int se)
 int
 _zip_mkstemp(char *path)
 {
-        int fd;   
+        int fd;
         char *start, *trv;
         struct stat sbuf;
         pid_t pid;
@@ -731,7 +731,7 @@ _zip_mkstemp(char *path)
                 if (*trv == 'X')
                         xcnt++;
                 else
-                        xcnt = 0;        
+                        xcnt = 0;
 
         /* Use at least one from xtra.  Use 2 if more than 6 X's. */
         if (*(trv - 1) == 'X')
@@ -838,7 +838,7 @@ struct zip_cdir *
 _zip_cdir_new(int nentry, struct zip_error *error)
 {
     struct zip_cdir *cd;
-    
+
     if ((cd=(struct zip_cdir *)malloc(sizeof(*cd))) == NULL) {
         _zip_error_set(error, ZIP_ER_MEMORY, 0);
         return NULL;
@@ -876,7 +876,7 @@ _zip_cdir_write(struct zip_cdir *cd, FILE *fp, struct zip_error *error)
     }
 
     cd->size = ftello(fp) - cd->offset;
-    
+
     /* clearerr(fp); */
     fwrite(EOCD_MAGIC, 1, 4, fp);
     _zip_write4(0, fp);
@@ -963,7 +963,7 @@ _zip_dirent_read(struct zip_dirent *zde, FILE *fp,
         size = LENTRYSIZE;
     else
         size = CDENTRYSIZE;
-    
+
     if (bufp) {
         /* use data from buffer */
         cur = *bufp;
@@ -988,9 +988,9 @@ _zip_dirent_read(struct zip_dirent *zde, FILE *fp,
     }
     cur += 4;
 
-    
+
     /* convert buffercontents to zip_dirent */
-    
+
     if (!localp)
         zde->version_madeby = _zip_read2(&cur);
     else
@@ -998,19 +998,19 @@ _zip_dirent_read(struct zip_dirent *zde, FILE *fp,
     zde->version_needed = _zip_read2(&cur);
     zde->bitflags = _zip_read2(&cur);
     zde->comp_method = _zip_read2(&cur);
-    
+
     /* convert to time_t */
     dostime = _zip_read2(&cur);
     dosdate = _zip_read2(&cur);
     zde->last_mod = _zip_d2u_time(dostime, dosdate);
-    
+
     zde->crc = _zip_read4(&cur);
     zde->comp_size = _zip_read4(&cur);
     zde->uncomp_size = _zip_read4(&cur);
-    
+
     zde->filename_len = _zip_read2(&cur);
     zde->extrafield_len = _zip_read2(&cur);
-    
+
     if (localp) {
         zde->comment_len = 0;
         zde->disk_number = 0;
@@ -1119,7 +1119,7 @@ _zip_dirent_torrent_normalize(struct zip_dirent *de)
 
         last_mod = mktime(&torrenttime);
     }
-    
+
     de->version_madeby = 0;
     de->version_needed = 20; /* 2.0 */
     de->bitflags = 2; /* maximum compression */
@@ -1168,14 +1168,14 @@ _zip_dirent_write(struct zip_dirent *zde, FILE *fp, int localp,
     _zip_u2d_time(zde->last_mod, &dostime, &dosdate);
     _zip_write2(dostime, fp);
     _zip_write2(dosdate, fp);
-    
+
     _zip_write4(zde->crc, fp);
     _zip_write4(zde->comp_size, fp);
     _zip_write4(zde->uncomp_size, fp);
-    
+
     _zip_write2(zde->filename_len, fp);
     _zip_write2(zde->extrafield_len, fp);
-    
+
     if (!localp) {
         _zip_write2(zde->comment_len, fp);
         _zip_write2(zde->disk_number, fp);
@@ -1215,7 +1215,7 @@ _zip_d2u_time(int dtime, int ddate)
     tm = localtime(&now);
     /* let mktime decide if DST is in effect */
     tm->tm_isdst = -1;
-    
+
     tm->tm_year = ((ddate>>9)&127) + 1980 - 1900;
     tm->tm_mon = ((ddate>>5)&15) - 1;
     tm->tm_mday = ddate&31;
@@ -1279,7 +1279,7 @@ _zip_readfpstr(FILE *fp, unsigned int len, int nulp, struct zip_error *error)
             if (*o == '\0')
                 *o = ' ';
     }
-    
+
     return r;
 }
 
@@ -1295,7 +1295,7 @@ _zip_readstr(unsigned char **buf, int len, int nulp, struct zip_error *error)
         _zip_error_set(error, ZIP_ER_MEMORY, 0);
         return NULL;
     }
-    
+
     memcpy(r, *buf, len);
     *buf += len;
 
@@ -1330,7 +1330,7 @@ _zip_write4(unsigned int i, FILE *fp)
     putc((i>>8)&0xff, fp);
     putc((i>>16)&0xff, fp);
     putc((i>>24)&0xff, fp);
-    
+
     return;
 }
 
@@ -1386,7 +1386,7 @@ zip_add(struct zip *za, const char *name, struct zip_source *source)
         _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
         return -1;
     }
-        
+
     return _zip_replace(za, -1, name, source);
 }
 
@@ -1578,7 +1578,7 @@ zip_close(struct zip *za)
         }
         _zip_free(za);
         return 0;
-    }               
+    }
 
     if ((filelist=(struct filelist *)malloc(sizeof(filelist[0])*survivors))
         == NULL)
@@ -1644,7 +1644,7 @@ zip_close(struct zip *za)
 
             if (zip_get_archive_flag(za, ZIP_AFL_TORRENT, 0))
                 _zip_dirent_torrent_normalize(&de);
-                
+
             /* use it as central directory entry */
             memcpy(cd->entry+j, &de, sizeof(cd->entry[j]));
 
@@ -1745,7 +1745,7 @@ zip_close(struct zip *za)
         if (write_cdir(za, cd, out) < 0)
             error = 1;
     }
-   
+
     /* pointers in cd entries are owned by za */
     cd->nentry = 0;
     _zip_cdir_free(cd);
@@ -1764,7 +1764,7 @@ zip_close(struct zip *za)
         free(temp);
         return -1;
     }
-    
+
     if (za->zp) {
         fclose(za->zp);
         za->zp = NULL;
@@ -1786,7 +1786,7 @@ zip_close(struct zip *za)
 
     _zip_free(za);
     free(temp);
-    
+
     return 0;
 }
 
@@ -1799,7 +1799,7 @@ add_data(struct zip *za, struct zip_source *zs, struct zip_dirent *de, FILE *ft)
     zip_source_callback cb;
     void *ud;
     struct zip_stat st;
-    
+
     cb = zs->f;
     ud = zs->ud;
 
@@ -1839,7 +1839,7 @@ add_data(struct zip *za, struct zip_source *zs, struct zip_dirent *de, FILE *ft)
         return -1;
     }
 
-    
+
     de->last_mod = st.mtime;
     de->comp_method = st.comp_method;
     de->crc = st.crc;
@@ -1851,7 +1851,7 @@ add_data(struct zip *za, struct zip_source *zs, struct zip_dirent *de, FILE *ft)
 
     if (_zip_dirent_write(de, ft, 1, &za->error) < 0)
         return -1;
-    
+
     if (fseeko(ft, offend, SEEK_SET) < 0) {
         _zip_error_set(&za->error, ZIP_ER_SEEK, errno);
         return -1;
@@ -1875,13 +1875,13 @@ add_data_comp(zip_source_callback cb, void *ud, struct zip_stat *st,FILE *ft,
             _zip_error_set(error, ZIP_ER_WRITE, errno);
             return -1;
         }
-        
+
         st->comp_size += n;
     }
     if (n < 0) {
         ch_set_error(error, cb, ud);
         return -1;
-    }        
+    }
 
     return 0;
 }
@@ -1946,15 +1946,15 @@ add_data_uncomp(struct zip *za, zip_source_callback cb, void *ud,
             _zip_error_set(&za->error, ZIP_ER_ZLIB, ret);
             return -1;
         }
-        
+
         if (zstr.avail_out != sizeof(b2)) {
             n2 = sizeof(b2) - zstr.avail_out;
-            
+
             if (fwrite(b2, 1, n2, ft) != n2) {
                 _zip_error_set(&za->error, ZIP_ER_WRITE, errno);
                 return -1;
             }
-        
+
             zstr.next_out = (Bytef *)b2;
             zstr.avail_out = sizeof(b2);
             st->comp_size += n2;
@@ -2012,7 +2012,7 @@ copy_data(FILE *fs, myoff_t len, FILE *ft, struct zip_error *error)
             _zip_error_set(error, ZIP_ER_WRITE, errno);
             return -1;
         }
-        
+
         len -= n;
     }
 
@@ -2027,10 +2027,10 @@ write_cdir(struct zip *za, struct zip_cdir *cd, FILE *out)
     myoff_t offset;
     uLong crc;
     char buf[TORRENT_CRC_LEN+1];
-    
+
     if (_zip_cdir_write(cd, out, &za->error) < 0)
         return -1;
-    
+
     if (zip_get_archive_flag(za, ZIP_AFL_TORRENT, 0) == 0)
         return 0;
 
@@ -2115,7 +2115,7 @@ _zip_create_temp_output(struct zip *za, FILE **outp)
     char *temp;
     int tfd;
     FILE *tfp;
-    
+
     if ((temp=(char *)malloc(strlen(za->zn)+8)) == NULL) {
         _zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
         return NULL;
@@ -2128,7 +2128,7 @@ _zip_create_temp_output(struct zip *za, FILE **outp)
         free(temp);
         return NULL;
     }
-    
+
     if ((tfp=fdopen(tfd, "r+b")) == NULL) {
         _zip_error_set(&za->error, ZIP_ER_TMPOPEN, errno);
         close(tfd);
@@ -2181,7 +2181,7 @@ zip_add_dir(struct zip *za, const char *name)
         free(s);
         return -1;
     }
-        
+
     ret = _zip_replace(za, -1, s ? s : name, source);
 
     free(s);
@@ -2201,16 +2201,16 @@ zip_error_to_str(char *buf, size_t len, int ze, int se)
         return snprintf(buf, len, "Unknown error %d", ze);
 
     zs = _zip_err_str[ze];
-        
+
     switch (_zip_err_type[ze]) {
     case ZIP_ET_SYS:
         ss = strerror(se);
         break;
-        
+
     case ZIP_ET_ZLIB:
         ss = zError(se);
         break;
-        
+
     default:
         ss = NULL;
     }
@@ -2231,7 +2231,7 @@ ZIP_EXTERN int
 zip_fclose(struct zip_file *zf)
 {
     int i, ret;
-    
+
     if (zf->zstr)
         inflateEnd(zf->zstr);
     free(zf->buffer);
@@ -2272,7 +2272,7 @@ _zip_filerange_crc(FILE *fp, myoff_t start, myoff_t len, uLong *crcp,
         _zip_error_set(errp, ZIP_ER_SEEK, errno);
         return -1;
     }
-    
+
     while (len > 0) {
         n = len > BUFSIZE ? BUFSIZE : len;
         if ((n=fread(buf, 1, n, fp)) <= 0) {
@@ -2391,7 +2391,7 @@ zip_fopen_index(struct zip *za, int fileno, int flags)
         zip_fclose(zf);
         return NULL;
     }
-    
+
     if ((zf->flags & ZIP_ZF_DECOMP) == 0)
         zf->bytes_left = zf->cbytes_left;
     else {
@@ -2418,7 +2418,7 @@ zip_fopen_index(struct zip *za, int fileno, int flags)
         zf->zstr->opaque = NULL;
         zf->zstr->next_in = (Bytef *)zf->buffer;
         zf->zstr->avail_in = len;
-        
+
         /* negative value to tell zlib that there is no header */
         if ((ret=inflateInit2(zf->zstr, -MAX_WBITS)) != Z_OK) {
             _zip_error_set(&za->error, ZIP_ER_ZLIB, ret);
@@ -2426,7 +2426,7 @@ zip_fopen_index(struct zip *za, int fileno, int flags)
             return NULL;
         }
     }
-    
+
     return zf;
 }
 
@@ -2442,7 +2442,7 @@ _zip_file_fillbuf(void *buf, size_t buflen, struct zip_file *zf)
 
     if ((zf->flags & ZIP_ZF_EOF) || zf->cbytes_left <= 0 || buflen <= 0)
         return 0;
-    
+
     if (fseeko(zf->za->zp, zf->fpos, SEEK_SET) < 0) {
         _zip_error_set(&zf->error, ZIP_ER_SEEK, errno);
         return -1;
@@ -2464,7 +2464,7 @@ _zip_file_fillbuf(void *buf, size_t buflen, struct zip_file *zf)
         zf->cbytes_left -= j;
     }
 
-    return j;        
+    return j;
 }
 
 
@@ -2479,7 +2479,7 @@ _zip_file_new(struct zip *za)
         _zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
         return NULL;
     }
-    
+
     if (za->nfile >= za->nfile_alloc-1) {
         n = za->nfile_alloc + 10;
         file = (struct zip_file **)realloc(za->file,
@@ -2544,7 +2544,7 @@ zip_set_file_comment(struct zip *za, int idx, const char *comment, int len)
     free(za->entry[idx].ch_comment);
     za->entry[idx].ch_comment = tmpcom;
     za->entry[idx].ch_comment_len = len;
-    
+
     return 0;
 }
 
@@ -2598,7 +2598,7 @@ zip_source_buffer(struct zip *za, const void *data, myoff_t len, int freep)
     f->end = ((const char *)data)+len;
     f->freep = freep;
     f->mtime = time(NULL);
-    
+
     if ((zs=zip_source_function(za, read_data, f)) == NULL) {
         free(f);
         return NULL;
@@ -2623,7 +2623,7 @@ read_data(void *state, void *data, size_t len, enum zip_source_cmd cmd)
     case ZIP_SOURCE_OPEN:
         z->buf = z->data;
         return 0;
-        
+
     case ZIP_SOURCE_READ:
         n = z->end - z->buf;
         if (n > len)
@@ -2635,14 +2635,14 @@ read_data(void *state, void *data, size_t len, enum zip_source_cmd cmd)
         }
 
         return n;
-        
+
     case ZIP_SOURCE_CLOSE:
         return 0;
 
     case ZIP_SOURCE_STAT:
         {
             struct zip_stat *st;
-            
+
             if (len < sizeof(*st))
                 return -1;
 
@@ -2651,7 +2651,7 @@ read_data(void *state, void *data, size_t len, enum zip_source_cmd cmd)
             zip_stat_init(st);
             st->mtime = z->mtime;
             st->size = z->end - z->data;
-            
+
             return sizeof(*st);
         }
 
@@ -2688,7 +2688,7 @@ _zip_set_name(struct zip *za, int idx, const char *name)
 {
     char *s;
     int i;
-    
+
     if (idx < 0 || idx >= za->nentry || name == NULL) {
         _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
         return -1;
@@ -2702,13 +2702,13 @@ _zip_set_name(struct zip *za, int idx, const char *name)
     /* no effective name change */
     if (i == idx)
         return 0;
-    
+
     if ((s=strdup(name)) == NULL) {
         _zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
         return -1;
     }
-    
-    if (za->entry[idx].state == ZIP_ST_UNCHANGED) 
+
+    if (za->entry[idx].state == ZIP_ST_UNCHANGED)
         za->entry[idx].state = ZIP_ST_RENAMED;
 
     free(za->entry[idx].ch_filename);
@@ -2738,7 +2738,7 @@ _zip_unchange_data(struct zip_entry *ze)
         free(ze->source);
         ze->source = NULL;
     }
-    
+
     ze->state = ze->ch_filename ? ZIP_ST_RENAMED : ZIP_ST_UNCHANGED;
 }
 
@@ -2767,7 +2767,7 @@ int
 _zip_unchange(struct zip *za, int idx, int allow_duplicates)
 {
     int i;
-    
+
     if (idx < 0 || idx >= za->nentry) {
         _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
         return -1;
@@ -2833,7 +2833,7 @@ zip_set_archive_comment(struct zip *za, const char *comment, int len)
     free(za->ch_comment);
     za->ch_comment = tmpcom;
     za->ch_comment_len = len;
-    
+
     return 0;
 }
 
@@ -2865,12 +2865,12 @@ _zip_replace(struct zip *za, int idx, const char *name,
 
         idx = za->nentry - 1;
     }
-    
+
     _zip_unchange_data(za->entry+idx);
 
     if (name && _zip_set_name(za, idx, name) != 0)
         return -1;
-    
+
     za->entry[idx].state = ((za->cdir == NULL || idx >= za->cdir->nentry)
                             ? ZIP_ST_ADDED : ZIP_ST_REPLACED);
     za->entry[idx].source = source;
@@ -2884,7 +2884,7 @@ zip_rename(struct zip *za, int idx, const char *name)
 {
     const char *old_name;
     int old_is_dir, new_is_dir;
-    
+
     if (idx >= za->nentry || idx < 0 || name[0] == '\0') {
         _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
         return -1;
@@ -2892,7 +2892,7 @@ zip_rename(struct zip *za, int idx, const char *name)
 
     if ((old_name=zip_get_name(za, idx, 0)) == NULL)
         return -1;
-                                                                    
+
     new_is_dir = (name[strlen(name)-1] == '/');
     old_is_dir = (old_name[strlen(old_name)-1] == '/');
 
@@ -2934,7 +2934,7 @@ zip_open(const char *fn, int flags, int *zep)
     struct zip_cdir *cdir;
     int i;
     myoff_t len;
-    
+
     switch (_zip_file_exists(fn, flags, zep)) {
     case -1:
         return NULL;
@@ -3013,7 +3013,7 @@ set_error(int *zep, struct zip_error *err, int ze)
 /* _zip_readcdir:
    tries to find a valid end-of-central-directory at the beginning of
    buf, and then the corresponding central directory entries.
-   Returns a struct zip_cdir which contains the central directory 
+   Returns a struct zip_cdir which contains the central directory
    entries, or NULL if unsuccessful. */
 
 static struct zip_cdir *
@@ -3108,7 +3108,7 @@ _zip_readcdir(FILE *fp, unsigned char *buf, unsigned char *eocd, int buflen,
             return NULL;
         }
     }
-    
+
     return cd;
 }
 
@@ -3141,7 +3141,7 @@ _zip_checkcons(FILE *fp, struct zip_cdir *cd, struct zip_error *error)
             _zip_error_set(error, ZIP_ER_NOZIP, 0);
             return -1;
         }
-        
+
         j = cd->entry[i].offset + cd->entry[i].comp_size
             + cd->entry[i].filename_len + LENTRYSIZE;
         if (j > max)
@@ -3150,15 +3150,15 @@ _zip_checkcons(FILE *fp, struct zip_cdir *cd, struct zip_error *error)
             _zip_error_set(error, ZIP_ER_NOZIP, 0);
             return -1;
         }
-        
+
         if (fseeko(fp, cd->entry[i].offset, SEEK_SET) != 0) {
             _zip_error_set(error, ZIP_ER_SEEK, 0);
             return -1;
         }
-        
+
         if (_zip_dirent_read(&temp, fp, NULL, 0, 1, error) == -1)
             return -1;
-        
+
         if (_zip_headercomp(cd->entry+i, 0, &temp, 1) != 0) {
             _zip_error_set(error, ZIP_ER_INCONS, 0);
             _zip_dirent_finalize(&temp);
@@ -3240,7 +3240,7 @@ _zip_headercomp(struct zip_dirent *h1, int local1p, struct zip_dirent *h2,
             || h2->comp_size != 0
             || h2->uncomp_size != 0))
         return -1;
-    
+
     /* check that CRC and sizes are equal if no data descriptor is used */
     if (((h1->bitflags & ZIP_GPBF_DATA_DESCRIPTOR) == 0 || local1p == 0)
         && ((h2->bitflags & ZIP_GPBF_DATA_DESCRIPTOR) == 0 || local2p == 0)) {
@@ -3249,7 +3249,7 @@ _zip_headercomp(struct zip_dirent *h1, int local1p, struct zip_dirent *h2,
             || (h1->uncomp_size != h2->uncomp_size))
             return -1;
     }
-    
+
     if ((local1p == local2p)
         && ((h1->extrafield_len != h2->extrafield_len)
             || (h1->extrafield_len && h2->extrafield
@@ -3286,7 +3286,7 @@ _zip_allocate_new(const char *fn, int *zep)
         set_error(zep, &error, 0);
         return NULL;
     }
-        
+
     za->zn = strdup(fn);
     if (!za->zn) {
         _zip_free(za);
@@ -3307,7 +3307,7 @@ _zip_file_exists(const char *fn, int flags, int *zep)
         set_error(zep, NULL, ZIP_ER_INVAL);
         return -1;
     }
-    
+
     if (stat(fn, &st) != 0) {
         if (flags & ZIP_CREATE)
             return 0;
@@ -3357,7 +3357,7 @@ _zip_find_central_dir(FILE *fp, int flags, int *zep, myoff_t len)
         free(buf);
         return NULL;
     }
-    
+
     best = -1;
     cdir = NULL;
     match = buf;
@@ -3395,7 +3395,7 @@ _zip_find_central_dir(FILE *fp, int flags, int *zep, myoff_t len)
     }
 
     free(buf);
-    
+
     if (best < 0) {
         set_error(zep, &zerr, 0);
         _zip_cdir_free(cdir);
@@ -3408,11 +3408,11 @@ _zip_find_central_dir(FILE *fp, int flags, int *zep, myoff_t len)
 
 
 static unsigned char *
-_zip_memmem(const unsigned char *big, int biglen, const unsigned char *little, 
+_zip_memmem(const unsigned char *big, int biglen, const unsigned char *little,
        int littlelen)
 {
     const unsigned char *p;
-    
+
     if ((biglen < littlelen) || (littlelen == 0))
         return NULL;
     p = big-1;
@@ -3453,7 +3453,7 @@ _zip_new(struct zip_error *error)
     za->nfile = za->nfile_alloc = 0;
     za->file = NULL;
     za->flags = za->ch_flags = 0;
-    
+
     return za;
 }
 
@@ -3513,7 +3513,7 @@ _zip_get_name(struct zip *za, int idx, int flags, struct zip_error *error)
         _zip_error_set(error, ZIP_ER_INVAL, 0);
         return NULL;
     }
-    
+
     return za->cdir->entry[idx].filename;
 }
 
@@ -3532,7 +3532,7 @@ zip_get_file_comment(struct zip *za, int idx, int *lenp, int flags)
             *lenp = za->cdir->entry[idx].comment_len;
         return za->cdir->entry[idx].comment;
     }
-    
+
     if (lenp != NULL)
         *lenp = za->entry[idx].ch_comment_len;
     return za->entry[idx].ch_comment;
@@ -3566,7 +3566,7 @@ zip_get_archive_comment(struct zip *za, int *lenp, int flags)
             return NULL;
         }
     }
-    
+
     if (lenp != NULL)
         *lenp = za->ch_comment_len;
     return za->ch_comment;
@@ -3608,7 +3608,7 @@ _zip_free(struct zip *za)
     }
 
     free(za->file);
-    
+
     free(za);
 
     return;
@@ -3641,7 +3641,7 @@ zip_fread(struct zip_file *zf, void *outbuf, size_t toread)
         }
         return 0;
     }
-    
+
     if ((zf->flags & ZIP_ZF_DECOMP) == 0) {
         ret = _zip_file_fillbuf(outbuf, toread, zf);
         if (ret > 0) {
@@ -3651,11 +3651,11 @@ zip_fread(struct zip_file *zf, void *outbuf, size_t toread)
         }
         return ret;
     }
-    
+
     zf->zstr->next_out = (Bytef *)outbuf;
     zf->zstr->avail_out = toread;
     out_before = zf->zstr->total_out;
-    
+
     /* endless loop until something has been accomplished */
     for (;;) {
         ret = inflate(zf->zstr, Z_SYNC_FLUSH);
@@ -3725,7 +3725,7 @@ ZIP_EXTERN int
 zip_stat_index(struct zip *za, int index, int flags, struct zip_stat *st)
 {
     const char *name;
-    
+
     if (index < 0 || index >= za->nentry) {
         _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
         return -1;
@@ -3733,7 +3733,7 @@ zip_stat_index(struct zip *za, int index, int flags, struct zip_stat *st)
 
     if ((name=zip_get_name(za, index, flags)) == NULL)
         return -1;
-    
+
 
     if ((flags & ZIP_FL_UNCHANGED) == 0
         && ZIP_ENTRY_DATA_CHANGED(za->entry+index)) {
@@ -3748,7 +3748,7 @@ zip_stat_index(struct zip *za, int index, int flags, struct zip_stat *st)
             _zip_error_set(&za->error, ZIP_ER_INVAL, 0);
             return -1;
         }
-        
+
         st->crc = za->cdir->entry[index].crc;
         st->size = za->cdir->entry[index].uncomp_size;
         st->mtime = za->cdir->entry[index].last_mod;
@@ -3769,7 +3769,7 @@ zip_stat_index(struct zip *za, int index, int flags, struct zip_stat *st)
 
     st->index = index;
     st->name = name;
-    
+
     return 0;
 }
 
@@ -3833,15 +3833,15 @@ zip_source_zip(struct zip *za, struct zip *srcza, int srcidx, int flags,
         _zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
         return NULL;
     }
-        
+
     _zip_error_copy(&error, &srcza->error);
-        
+
     if (zip_stat_index(srcza, srcidx, flags, &p->st) < 0
         || (p->zf=zip_fopen_index(srcza, srcidx, flags)) == NULL) {
         free(p);
         _zip_error_copy(&za->error, &srcza->error);
         _zip_error_copy(&srcza->error, &error);
-        
+
         return NULL;
     }
     p->off = start;
@@ -3852,7 +3852,7 @@ zip_source_zip(struct zip *za, struct zip *srcza, int srcidx, int flags,
         p->st.comp_method = ZIP_CM_STORE;
         p->st.crc = 0;
     }
-    
+
     if ((zs=zip_source_function(za, read_zip, p)) == NULL) {
         free(p);
         return NULL;
@@ -3884,13 +3884,13 @@ read_zip(void *state, void *data, size_t len, enum zip_source_cmd cmd)
             }
         }
         return 0;
-        
+
     case ZIP_SOURCE_READ:
         if (z->len != -1)
             n = len > z->len ? z->len : len;
         else
             n = len;
-        
+
 
         if ((i=zip_fread(z->zf, buf, n)) < 0)
             return -1;
@@ -3899,7 +3899,7 @@ read_zip(void *state, void *data, size_t len, enum zip_source_cmd cmd)
             z->len -= i;
 
         return i;
-        
+
     case ZIP_SOURCE_CLOSE:
         return 0;
 
@@ -3951,7 +3951,7 @@ zip_source_function(struct zip *za, zip_source_callback zcb, void *ud)
 
     zs->f = zcb;
     zs->ud = ud;
-    
+
     return zs;
 }
 
@@ -4026,7 +4026,7 @@ _zip_source_file_or_p(struct zip *za, const char *fname, FILE *file,
     f->f = file;
     f->off = start;
     f->len = (len ? len : -1);
-    
+
     if ((zs=zip_source_function(za, read_file, f)) == NULL) {
         free(f);
         return NULL;
@@ -4064,13 +4064,13 @@ read_file(void *state, void *data, size_t len, enum zip_source_cmd cmd)
         }
         z->remain = z->len;
         return 0;
-        
+
     case ZIP_SOURCE_READ:
         if (z->remain != -1)
             n = len > z->remain ? z->remain : len;
         else
             n = len;
-        
+
         if ((i=fread(buf, 1, n, z->f)) < 0) {
             z->e[0] = ZIP_ER_READ;
             z->e[1] = errno;
@@ -4081,7 +4081,7 @@ read_file(void *state, void *data, size_t len, enum zip_source_cmd cmd)
             z->remain -= i;
 
         return i;
-        
+
     case ZIP_SOURCE_CLOSE:
         if (z->fname) {
             fclose(z->f);
@@ -4094,7 +4094,7 @@ read_file(void *state, void *data, size_t len, enum zip_source_cmd cmd)
             struct zip_stat *st;
             struct stat fst;
             int err;
-            
+
             if (len < sizeof(*st))
                 return -1;
 
@@ -4163,7 +4163,7 @@ _zip_name_locate(struct zip *za, const char *fname, int flags,
         _zip_error_set(error, ZIP_ER_INVAL, 0);
         return -1;
     }
-    
+
     cmp = (flags & ZIP_FL_NOCASE) ? strcasecmp : strcmp;
 
     n = (flags & ZIP_FL_UNCHANGED) ? za->cdir->nentry : za->nentry;
@@ -4176,7 +4176,7 @@ _zip_name_locate(struct zip *za, const char *fname, int flags,
         /* newly added (partially filled) entry */
         if (fn == NULL)
             continue;
-        
+
         if (flags & ZIP_FL_NODIR) {
             p = strrchr(fn, '/');
             if (p)
