@@ -3,7 +3,7 @@ import os, osproc, streams, unittest, ../zip/zipfiles
 const path = splitPath(currentSourcePath()).head & "/../zip/zipfiles"
 
 test "can compile zipfiles":
-  check execCmdEx("nim -o:./nimcache/zipfiles --nimcache:./nimcache c " & 
+  check execCmdEx("nim -o:./nimcache/zipfiles --nimcache:./nimcache c " &
     path).exitCode == QuitSuccess
 
 test "zipfiles extractAll":
