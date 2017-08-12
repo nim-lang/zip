@@ -77,7 +77,7 @@ proc renameFile*(z: var ZipArchive, src, dest: string) =
       if zip_rename(z.w, index, dest.zipConvPath) < 0:
         zipError(z)
 
-proc addFile*(z: var ZipArchive, src, dest: string, deflate: bool = true, replace: bool = false) =
+proc addFile*(z: var ZipArchive, dest, src: string, deflate: bool = true, replace: bool = false) =
   ## Adds the file `src` to the archive `z` with the name `dest`. `dest`
   ## may contain a path that will be created.
   assert(z.mode != fmRead)
@@ -107,10 +107,10 @@ proc addFile*(z: var ZipArchive, src, dest: string, deflate: bool = true, replac
       zip_source_free(zipsrc)
       zipError(z)
 
-proc addFile*(z: var ZipArchive, file: string, deflate: bool = true) =
+proc addFile*(z: var ZipArchive, file: string, deflate: bool = true, replace: bool = false) =
   ## A shortcut for ``addFile(z, file, file)``, i.e. the name of the source is
   ## the name of the destination.
-  addFile(z, file, file, deflate)
+  addFile(z, file, file, deflate, replace)
 
 proc mySourceCallback(state, data: pointer, len: int,
                       cmd: ZipSourceCmd): int {.cdecl.} =
@@ -140,16 +140,31 @@ proc mySourceCallback(state, data: pointer, len: int,
     # An unknown command, failing
     result = -1
 
-proc addFile*(z: var ZipArchive, src: Stream, dest: string) =
+proc addFile*(z: var ZipArchive, dest: string, src: Stream, deflate: bool = true, replace: bool = false) =
   ## Adds a file named with `dest` to the archive `z`. `dest`
   ## may contain a path. The file's content is read from the `src` stream.
   assert(z.mode != fmRead)
   GC_ref(src)
+  var index = -1'i32
   var zipsrc = zip_source_function(z.w, mySourceCallback, cast[pointer](src))
   if zipsrc == nil: zipError(z)
-  if zip_add(z.w, dest.zipConvPath, zipsrc) < 0'i32:
-    zip_source_free(zipsrc)
-    zipError(z)
+
+  if replace:
+    index = zip_name_locate(z.w, dest.zipConvPath, ZIP_FL_NOCASE)
+    if index < 0'i32:
+      zip_source_free(zipsrc)
+      zipError(z)
+      return
+    else:
+      index = zip_replace(z.w, index, zipsrc)
+  else:
+    if zip_add(z.w, dest.zipConvPath, zipsrc) < 0'i32:
+      zip_source_free(zipsrc)
+      zipError(z)
+  if not deflate:
+    if zip_set_file_compression(z.w, cast[uint64](index), ZIP_CM_STORE, 6) < 0:
+      zip_source_free(zipsrc)
+      zipError(z)
 
 # -------------- zip file stream ---------------------------------------------
 
