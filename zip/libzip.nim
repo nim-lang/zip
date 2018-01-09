@@ -55,7 +55,7 @@ when defined(unix) and not defined(useLibzipSrc):
 else:
   when defined(unix):
     {.passl: "-lz".}
-  {.compile: "zip/private/libzip_all.c".}
+  {.emit: staticRead("private/libzip_all.c").}
   {.pragma: mydll.}
 
 type
