@@ -5,6 +5,8 @@ author        = "Anonymous"
 description   = "Wrapper for the zip library"
 license       = "MIT"
 
+skipDirs = @["tests"]
+
 # Dependencies
 
 requires "nim >= 0.10.0"
