@@ -305,8 +305,6 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
   of DETECT_STREAM: MAX_WBITS + 32
 
   var status = inflateInit2(z, wbits.int32)
-  if status != Z_OK:
-    return
 
   case status
   of Z_OK: discard
@@ -408,9 +406,9 @@ proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREA
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
   ## Returns true if `buffer` was successfully deflated otherwise the buffer is untouched.
-  assert(not buffer.isNil)
+  assert(buffer.len != 0)
   var temp = compress(addr(buffer[0]), buffer.len, level, stream)
-  if not temp.isNil:
+  if temp.len != 0:
     swap(buffer, temp)
     result = true
 
@@ -430,8 +428,8 @@ proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
   ## in this case the proc won't modify the buffer.
   ##
   ## Returns true if `buffer` was successfully inflated.
-  assert(not buffer.isNil)
+  assert(buffer.len != 0)
   var temp = uncompress(addr(buffer[0]), buffer.len, stream)
-  if not temp.isNil:
+  if temp.len != 0:
     swap(buffer, temp)
     result = true
