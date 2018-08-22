@@ -213,7 +213,7 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   ## Compression level can be set with ``level`` argument. Currently
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
-  ## Returns nil on failure.
+  ## Returns "" on failure.
   assert(not sourceBuf.isNil)
   assert(sourceLen >= 0)
 
@@ -262,13 +262,10 @@ proc compress*(input: string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREAM): 
   ##  - ``GZIP_STREAM`` - add a basic gzip header and footer.
   ##  - ``RAW_DEFLATE`` - no header is generated.
   ##
-  ## Passing a nil string will crash this proc in release mode and assert in
-  ## debug mode.
-  ##
   ## Compression level can be set with ``level`` argument. Currently
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
-  ## Returns nil on failure.
+  ## Returns "" on failure.
   result = compress(input, input.len, level, stream)
 
 proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): string =
@@ -284,7 +281,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
   ## Passing a nil cstring will crash this proc in release mode and assert in
   ## debug mode.
   ##
-  ## Returns nil on problems. Failure is a very loose concept, it could be you
+  ## Returns "" on problems. Failure is a very loose concept, it could be you
   ## passing a non deflated string, or it could mean not having enough memory
   ## for the inflated version.
   ##
@@ -383,10 +380,7 @@ proc uncompress*(sourceBuf: string; stream=DETECT_STREAM): string =
   ##   - ``GZIP_STREAM`` - decompress a gzip stream.
   ##   - ``RAW_DEFLATE`` - decompress a raw deflate stream.
   ##
-  ## Passing a nil string will crash this proc in release mode and assert in
-  ## debug mode.
-  ##
-  ## Returns nil on failure.
+  ## Returns "" on failure.
   result = uncompress(sourceBuf, sourceBuf.len, stream)
 
 
@@ -399,14 +393,11 @@ proc deflate*(buffer: var string; level=Z_DEFAULT_COMPRESSION; stream=GZIP_STREA
   ##   - ``GZIP_STREAM`` - add a basic gzip header and footer.
   ##   - ``RAW_DEFLATE`` - no header is generated.
   ##
-  ## Passing a nil string will crash this proc in release mode and assert in
-  ## debug mode.
-  ##
   ## Compression level can be set with ``level`` argument. Currently
   ## ``Z_DEFAULT_COMPRESSION`` is 6.
   ##
   ## Returns true if `buffer` was successfully deflated otherwise the buffer is untouched.
-  assert(buffer.len != 0)
+
   var temp = compress(addr(buffer[0]), buffer.len, level, stream)
   if temp.len != 0:
     swap(buffer, temp)
@@ -423,12 +414,11 @@ proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
   ##   - ``GZIP_STREAM`` - decompress a gzip stream.
   ##   - ``RAW_DEFLATE`` - decompress a raw deflate stream.
   ##
-  ## Passing a nil string will crash this proc in release mode and assert in
-  ## debug mode. It is ok to pass a buffer which doesn't contain deflated data,
+  ## It is ok to pass a buffer which doesn't contain deflated data,
   ## in this case the proc won't modify the buffer.
   ##
   ## Returns true if `buffer` was successfully inflated.
-  assert(buffer.len != 0)
+ 
   var temp = uncompress(addr(buffer[0]), buffer.len, stream)
   if temp.len != 0:
     swap(buffer, temp)
