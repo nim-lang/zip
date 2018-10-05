@@ -236,7 +236,7 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   else: raise newException(ZlibStreamError, "Unkown error(" & $status & ") : " & $z.msg)
 
   let space = deflateBound(z, sourceLen)
-  var compressed = newStringOfCap(space)
+  var compressed = newString(space)
   z.next_in = sourceBuf
   z.avail_in = sourceLen.Uint
   z.next_out = addr(compressed[0])
