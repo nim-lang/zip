@@ -113,6 +113,21 @@ proc addFile*(z: var ZipArchive, dest: string, src: Stream) =
     zip_source_free(zipsrc)
     zipError(z)
 
+proc getArchiveComment*(z: var ZipArchive): string =
+  ## Reads the comment from the archive ``z``.
+  ## Throws a IOError exception if the comment cannot be read.
+  let comm = zip_get_archive_comment(z.w, nil, 0)
+  if comm == nil:
+    raise newException(IOError, "Could not read the archive comment")
+  result = $comm
+
+proc setArchiveComment*(z: var ZipArchive, comm: string) =
+  ## Sets the contents of the string ``comm`` as the archive ``z`` comment.
+  if comm.len > 65535:
+    raise newException(IOError, "The comment string is too long (max 65535 bytes)")
+  if zip_set_archive_comment(z.w, comm, int32(comm.len)) != 0:
+    zipError(z)
+
 # -------------- zip file stream ---------------------------------------------
 
 type
