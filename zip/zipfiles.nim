@@ -123,6 +123,7 @@ proc getArchiveComment*(z: var ZipArchive): string =
 
 proc setArchiveComment*(z: var ZipArchive, comm: string) =
   ## Sets the contents of the string ``comm`` as the archive ``z`` comment.
+  assert(z.mode != fmRead)
   if comm.len > 65535:
     raise newException(IOError, "The comment string is too long (max 65535 bytes)")
   if zip_set_archive_comment(z.w, comm, int32(comm.len)) != 0:
