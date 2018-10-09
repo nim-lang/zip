@@ -1,4 +1,4 @@
-import os, osproc, streams, unittest, ../zip/zipfiles
+import os, osproc, streams, unittest, strutils, ../zip/zipfiles
 
 const path = splitPath(currentSourcePath()).head & "/../zip/zipfiles"
 
@@ -34,3 +34,17 @@ test "zipfiles read and write using Stream":
   z.close()
 
   check: outStream.data == "content"
+
+test "zipfiles read and write archive comment":
+  let filename = getTempDir() / "zipfiles_test_archive.zip"
+  defer: filename.removeFile
+
+  var z: ZipArchive
+  require z.open(filename, fmWrite)
+
+  z.setArchiveComment("TEST123123")
+  doAssert z.getArchiveComment() == "TEST123123"
+
+  expect IOError: z.setArchiveComment('x'.repeat(65535 + 1))
+
+  z.close()
