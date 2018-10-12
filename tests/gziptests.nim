@@ -43,4 +43,25 @@ proc main() =
                 break
         s.close()
         w.close()
+
+    # read line by line confirming that behavior of atEnd is consistent with standard FileStream
+    block:
+        let fs = newFileStream("files/gzipfiletest.txt")
+        let gzfs = newGzFileStream("files/gzipfiletest.txt.gz")
+
+        var fs_lines = 0
+        while not fs.atEnd():
+            discard fs.readLine()
+            inc(fs_lines)
+
+        var gzfs_lines = 0
+        while not gzfs.atEnd():
+            discard gzfs.readLine()
+            inc(gzfs_lines)
+
+        doAssert(fs_lines == gzfs_lines)
+
+        fs.close()
+        gzfs.close()
+
 main()
