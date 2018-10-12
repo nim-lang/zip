@@ -22,7 +22,9 @@ proc fsFlush(s: Stream) =
     discard gzflush(GzFileStream(s).f, Z_FINISH)
 
 proc fsAtEnd(s: Stream): bool =
-    result = gzeof(GzFileStream(s).f) == 1
+    let c = gzgetc(GzFileStream(s).f)
+    discard gzungetc(c, GzFileStream(s).f)
+    result = c < 0'i32
 
 proc fsSetPosition(s: Stream, pos: int) =
     if gzseek(GzFileStream(s).f, pos.ZOffT, SEEK_SET) == -1:
