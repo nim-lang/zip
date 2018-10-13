@@ -131,7 +131,7 @@ proc gzputs*(thefile: GzFile, s: Pbytef): int32{.cdecl, dynlib: libz,
     importc: "gzputs".}
 proc gzgets*(thefile: GzFile, buf: Pbytef, length: int32): Pbytef{.cdecl,
     dynlib: libz, importc: "gzgets".}
-proc gzputc*(thefile: GzFile, c: char): char{.cdecl, dynlib: libz,
+proc gzputc*(thefile: GzFile, c: int32): int32 {.cdecl, dynlib: libz,
     importc: "gzputc".}
 proc gzgetc*(thefile: GzFile): int32 {.cdecl, dynlib: libz, importc: "gzgetc".}
 proc gzungetc*(c: int32; thefile: GzFile): int32 {.cdecl, dynlib: libz, importc: "gzungetc".}
