@@ -20,6 +20,9 @@ type
     w: PZip
 {.deprecated: [TZipArchive: ZipArchive].}
 
+proc zipConvPath(path: string): string = 
+  return path.replace(r"\", "/")
+
 proc zipError(z: var ZipArchive) =
   var e: ref IOError
   new(e)
@@ -51,28 +54,63 @@ proc createDir*(z: var ZipArchive, dir: string) =
   ## to create the ``"path/path2"`` subdirectories - it will be done
   ## automatically by ``addFile``.
   assert(z.mode != fmRead)
-  discard zip_add_dir(z.w, dir)
+  discard zip_add_dir(z.w, dir.zipConvPath)
   zip_error_clear(z.w)
 
-proc addFile*(z: var ZipArchive, dest, src: string) =
+proc removeFile*(z: var ZipArchive, file: string) =
+    ## Removes file from zip archive.
+    assert(z.mode != fmRead)
+    var index = zip_name_locate(z.w, file.zipConvPath, ZIP_FL_NOCASE)
+    if index < 0'i32:
+      zipError(z)
+    else:
+      if zip_delete(z.w, index) < 0:
+        zipError(z)
+
+proc renameFile*(z: var ZipArchive, src, dest: string) =
+    ## Renames or moves file in zip archive.
+    assert(z.mode != fmRead)
+    var index = zip_name_locate(z.w, src.zipConvPath, ZIP_FL_NOCASE)
+    if index < 0'i32:
+      zipError(z)
+    else:
+      if zip_rename(z.w, index, dest.zipConvPath) < 0:
+        zipError(z)
+
+proc addFile*(z: var ZipArchive, dest, src: string, deflate: bool = true, replace: bool = false) =
   ## Adds the file `src` to the archive `z` with the name `dest`. `dest`
   ## may contain a path that will be created.
   assert(z.mode != fmRead)
+  var index = -1'i32
   if not fileExists(src):
     raise newException(IOError, "File '" & src & "' does not exist")
+  let filePath = dest.zipConvPath
   var zipsrc = zip_source_file(z.w, src, 0, -1)
   if zipsrc == nil:
-    #echo("Dest: " & dest)
-    #echo("Src: " & src)
-    zipError(z)
-  if zip_add(z.w, dest, zipsrc) < 0'i32:
-    zip_source_free(zipsrc)
     zipError(z)
 
-proc addFile*(z: var ZipArchive, file: string) =
+  if replace:
+    index = zip_name_locate(z.w, filePath, ZIP_FL_NOCASE)
+    if index < 0'i32:
+      zip_source_free(zipsrc)
+      zipError(z)
+      return
+    else:
+      index = zip_replace(z.w, index, zipsrc)
+  else:
+    index = zip_add(z.w, filePath, zipsrc)
+  if index < 0'i32:
+    zip_source_free(zipsrc)
+    zipError(z)
+  if not deflate:
+    if zip_set_file_compression(z.w, cast[uint64](index), ZIP_CM_STORE, 6) < 0:
+      zip_source_free(zipsrc)
+      zipError(z)
+
+proc addFile*(z: var ZipArchive, file: string, deflate: bool = true, replace: bool = false) =
   ## A shortcut for ``addFile(z, file, file)``, i.e. the name of the source is
   ## the name of the destination.
-  addFile(z, file, file)
+  addFile(z, file, file, deflate, replace)
 
 proc mySourceCallback(state, data: pointer, len: int,
                       cmd: ZipSourceCmd): int {.cdecl.} =
@@ -102,16 +140,31 @@ proc mySourceCallback(state, data: pointer, len: int,
     # An unknown command, failing
     result = -1
 
-proc addFile*(z: var ZipArchive, dest: string, src: Stream) =
+proc addFile*(z: var ZipArchive, dest: string, src: Stream, deflate: bool = true, replace: bool = false) =
   ## Adds a file named with `dest` to the archive `z`. `dest`
   ## may contain a path. The file's content is read from the `src` stream.
   assert(z.mode != fmRead)
   GC_ref(src)
+  var index = -1'i32
   var zipsrc = zip_source_function(z.w, mySourceCallback, cast[pointer](src))
   if zipsrc == nil: zipError(z)
-  if zip_add(z.w, dest, zipsrc) < 0'i32:
-    zip_source_free(zipsrc)
-    zipError(z)
+
+  if replace:
+    index = zip_name_locate(z.w, dest.zipConvPath, ZIP_FL_NOCASE)
+    if index < 0'i32:
+      zip_source_free(zipsrc)
+      zipError(z)
+      return
+    else:
+      index = zip_replace(z.w, index, zipsrc)
+  else:
+    if zip_add(z.w, dest.zipConvPath, zipsrc) < 0'i32:
+      zip_source_free(zipsrc)
+      zipError(z)
+  if not deflate:
+    if zip_set_file_compression(z.w, cast[uint64](index), ZIP_CM_STORE, 6) < 0:
+      zip_source_free(zipsrc)
+      zipError(z)
 
 proc getArchiveComment*(z: var ZipArchive): string =
   ## Reads the comment from the archive ``z``.
@@ -162,7 +215,7 @@ proc getStream*(z: var ZipArchive, filename: string): PZipFileStream =
   ## from the archive `z`. Returns nil in case of an error.
   ## The returned stream does not support the `setPosition`, `getPosition`,
   ## `writeData` or `atEnd` methods.
-  var x = zip_fopen(z.w, filename, 0'i32)
+  var x = zip_fopen(z.w, filename.zipConvPath, 0'i32)
   if x != nil: result = newZipFileStream(x)
 
 iterator walkFiles*(z: var ZipArchive): string =
@@ -177,7 +230,7 @@ iterator walkFiles*(z: var ZipArchive): string =
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   ## extracts a file from the zip archive `z` to the destination stream.
   var buf: array[BufSize, byte]
-  var strm = getStream(z, srcFile)
+  var strm = getStream(z, srcFile.zipConvPath)
   while true:
     let bytesRead = strm.readData(addr(buf[0]), buf.len)
     if bytesRead <= 0: break
@@ -187,23 +240,30 @@ proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   strm.close()
 
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: string) =
-  ## extracts a file from the zip archive `z` to the destination filename.
-  var file = newFileStream(dest, fmWrite)
+  ## extracts a file from the zip archive `z` to the destination filename or directory.
+  var filePath = if dest == "": "." else: dest.zipConvPath
+
+  if filePath.endsWith("/"): 
+    createDir(filePath)
+    filePath = filePath & srcFile.extractFilename
+  # file system will not accept directory and file of the same name
+  if os.existsDir(filePath): filePath = filePath / srcFile.extractFilename
+
+  var file = newFileStream(filePath, fmWrite)
   if file.isNil:
-    raise newException(IOError, "Failed to create output file: " & dest)
+    raise newException(IOError, "Failed to create output file: " & filePath)
   extractFile(z, srcFile, file)
   file.close()
 
 proc extractAll*(z: var ZipArchive, dest: string) =
   ## extracts all files from archive `z` to the destination directory.
   createDir(dest)
+  let destPath = dest.zipConvPath
   for file in walkFiles(z):
-    if file.contains("/"):
-      createDir(dest / file[0..file.rfind("/")])
-    extractFile(z, file, dest / file)
+    if file.endsWith("/"):
+      createDir(destPath / file[0..file.rfind("/")])
+    else:
+      var (dir, filename, ext) = file.splitFile()
+      createDir(destPath / dir)
+      extractFile(z, file, destPath / file)
 
-when not defined(testing) and isMainModule:
-  var zip: ZipArchive
-  if not zip.open("nim-0.11.0.zip"):
-    raise newException(IOError, "opening zip failed")
-  zip.extractAll("test")

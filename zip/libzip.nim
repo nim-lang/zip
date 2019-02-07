@@ -47,16 +47,20 @@
 
 import times
 
-when defined(unix) and not defined(useLibzipSrc):
-  when defined(macosx):
-    {.pragma: mydll, dynlib: "libzip(|2|4).dylib".}
-  else:
-    {.pragma: mydll, dynlib: "libzip(|2).so(|.4|.2|.1|.0)".}
-else:
-  when defined(unix):
-    {.passl: "-lz".}
-  {.compile: "zip/private/libzip_all.c".}
-  {.pragma: mydll.}
+# when defined(unix) and not defined(useLibzipSrc):
+#   when defined(macosx):
+#     {.pragma: mydll, dynlib: "libzip(|2|4).dylib".}
+#   else:
+#     {.pragma: mydll, dynlib: "libzip(|2).so(|.4|.2|.1|.0)".}
+# else:
+#   when defined(unix):
+#     {.passl: "-lz".}
+#   {.compile: "zip/private/libzip_all.c".}
+#   {.pragma: mydll.}
+# {.pragma: mydll, dynlib: "libzip-5.dll".}
+{.passl: "-static".}
+{.passl: "-lzip".}
+{.passl: "-lz".}
 
 type
   ZipSourceCmd* = int32
@@ -170,83 +174,85 @@ const
   ZIP_SOURCE_SUPPORTS* = 14'i32   ## check supported commands
 
 proc zip_add*(para1: PZip, para2: cstring, para3: PZipSource): int32 {.cdecl,
-    importc: "zip_add", mydll.}
+    importc: "zip_add".}
+proc zip_set_file_compression*(para1: PZip, para2: uint64, para3: int32, para4: uint32): int {.cdecl,
+    importc: "zip_set_file_compression".}
 proc zip_add_dir*(para1: PZip, para2: cstring): int32 {.cdecl,
-    importc: "zip_add_dir", mydll.}
-proc zip_close*(para1: PZip) {.cdecl, importc: "zip_close", mydll.}
-proc zip_delete*(para1: PZip, para2: int32): int32 {.cdecl, mydll,
+    importc: "zip_add_dir".}
+proc zip_close*(para1: PZip) {.cdecl, importc: "zip_close".}
+proc zip_delete*(para1: PZip, para2: int32): int32 {.cdecl,
     importc: "zip_delete".}
-proc zip_error_clear*(para1: PZip) {.cdecl, importc: "zip_error_clear", mydll.}
+proc zip_error_clear*(para1: PZip) {.cdecl, importc: "zip_error_clear".}
 proc zip_error_get*(para1: PZip, para2: ptr int32, para3: ptr int32) {.cdecl,
-    importc: "zip_error_get", mydll.}
-proc zip_error_get_sys_type*(para1: int32): int32 {.cdecl, mydll,
+    importc: "zip_error_get".}
+proc zip_error_get_sys_type*(para1: int32): int32 {.cdecl,
     importc: "zip_error_get_sys_type".}
 proc zip_error_to_str*(para1: cstring, para2: int, para3: int32,
-                       para4: int32): int32 {.cdecl, mydll,
+                       para4: int32): int32 {.cdecl,
     importc: "zip_error_to_str".}
-proc zip_fclose*(para1: PZipFile) {.cdecl, mydll,
+proc zip_fclose*(para1: PZipFile) {.cdecl,
     importc: "zip_fclose".}
-proc zip_file_error_clear*(para1: PZipFile) {.cdecl, mydll,
+proc zip_file_error_clear*(para1: PZipFile) {.cdecl,
     importc: "zip_file_error_clear".}
 proc zip_file_error_get*(para1: PZipFile, para2: ptr int32, para3: ptr int32) {.
-    cdecl, mydll, importc: "zip_file_error_get".}
-proc zip_file_strerror*(para1: PZipFile): cstring {.cdecl, mydll,
+    cdecl, importc: "zip_file_error_get".}
+proc zip_file_strerror*(para1: PZipFile): cstring {.cdecl,
     importc: "zip_file_strerror".}
 proc zip_fopen*(para1: PZip, para2: cstring, para3: int32): PZipFile {.cdecl,
-    mydll, importc: "zip_fopen".}
+    importc: "zip_fopen".}
 proc zip_fopen_index*(para1: PZip, para2: int32, para3: int32): PZipFile {.
-    cdecl, mydll, importc: "zip_fopen_index".}
+    cdecl, importc: "zip_fopen_index".}
 proc zip_fread*(para1: PZipFile, para2: pointer, para3: int): int {.
-    cdecl, mydll, importc: "zip_fread".}
+    cdecl, importc: "zip_fread".}
 proc zip_get_archive_comment*(para1: PZip, para2: ptr int32, para3: int32): cstring {.
-    cdecl, mydll, importc: "zip_get_archive_comment".}
+    cdecl, importc: "zip_get_archive_comment".}
 proc zip_get_archive_flag*(para1: PZip, para2: int32, para3: int32): int32 {.
-    cdecl, mydll, importc: "zip_get_archive_flag".}
+    cdecl, importc: "zip_get_archive_flag".}
 proc zip_get_file_comment*(para1: PZip, para2: int32, para3: ptr int32,
-                           para4: int32): cstring {.cdecl, mydll,
+                           para4: int32): cstring {.cdecl,
     importc: "zip_get_file_comment".}
 proc zip_get_name*(para1: PZip, para2: int32, para3: int32): cstring {.cdecl,
-    mydll, importc: "zip_get_name".}
+    importc: "zip_get_name".}
 proc zip_get_num_files*(para1: PZip): int32 {.cdecl,
-    mydll, importc: "zip_get_num_files".}
+    importc: "zip_get_num_files".}
 proc zip_name_locate*(para1: PZip, para2: cstring, para3: int32): int32 {.cdecl,
-    mydll, importc: "zip_name_locate".}
+    importc: "zip_name_locate".}
 proc zip_open*(para1: cstring, para2: int32, para3: ptr int32): PZip {.cdecl,
-    mydll, importc: "zip_open".}
+    importc: "zip_open".}
 proc zip_rename*(para1: PZip, para2: int32, para3: cstring): int32 {.cdecl,
-    mydll, importc: "zip_rename".}
+    importc: "zip_rename".}
 proc zip_replace*(para1: PZip, para2: int32, para3: PZipSource): int32 {.cdecl,
-    mydll, importc: "zip_replace".}
+    importc: "zip_replace".}
 proc zip_set_archive_comment*(para1: PZip, para2: cstring, para3: int32): int32 {.
-    cdecl, mydll, importc: "zip_set_archive_comment".}
+    cdecl, importc: "zip_set_archive_comment".}
 proc zip_set_archive_flag*(para1: PZip, para2: int32, para3: int32): int32 {.
-    cdecl, mydll, importc: "zip_set_archive_flag".}
+    cdecl, importc: "zip_set_archive_flag".}
 proc zip_set_file_comment*(para1: PZip, para2: int32, para3: cstring,
-                           para4: int32): int32 {.cdecl, mydll,
+                           para4: int32): int32 {.cdecl,
     importc: "zip_set_file_comment".}
 proc zip_source_buffer*(para1: PZip, para2: pointer, para3: int, para4: int32): PZipSource {.
-    cdecl, mydll, importc: "zip_source_buffer".}
+    cdecl, importc: "zip_source_buffer".}
 proc zip_source_file*(para1: PZip, para2: cstring, para3: int, para4: int): PZipSource {.
-    cdecl, mydll, importc: "zip_source_file".}
+    cdecl, importc: "zip_source_file".}
 proc zip_source_filep*(para1: PZip, para2: File, para3: int, para4: int): PZipSource {.
-    cdecl, mydll, importc: "zip_source_filep".}
-proc zip_source_free*(para1: PZipSource) {.cdecl, mydll,
+    cdecl, importc: "zip_source_filep".}
+proc zip_source_free*(para1: PZipSource) {.cdecl,
     importc: "zip_source_free".}
 proc zip_source_function*(para1: PZip, para2: ZipSourceCallback,
-                          para3: pointer): PZipSource {.cdecl, mydll,
+                          para3: pointer): PZipSource {.cdecl,
     importc: "zip_source_function".}
 proc zip_source_zip*(para1: PZip, para2: PZip, para3: int32, para4: int32,
-                     para5: int, para6: int): PZipSource {.cdecl, mydll,
+                     para5: int, para6: int): PZipSource {.cdecl,
     importc: "zip_source_zip".}
 proc zip_stat*(para1: PZip, para2: cstring, para3: int32, para4: PZipStat): int32 {.
-    cdecl, mydll, importc: "zip_stat".}
+    cdecl, importc: "zip_stat".}
 proc zip_stat_index*(para1: PZip, para2: int32, para3: int32, para4: PZipStat): int32 {.
-    cdecl, mydll, importc: "zip_stat_index".}
-proc zip_stat_init*(para1: PZipStat) {.cdecl, mydll, importc: "zip_stat_init".}
-proc zip_strerror*(para1: PZip): cstring {.cdecl, mydll, importc: "zip_strerror".}
-proc zip_unchange*(para1: PZip, para2: int32): int32 {.cdecl, mydll,
+    cdecl, importc: "zip_stat_index".}
+proc zip_stat_init*(para1: PZipStat) {.cdecl, importc: "zip_stat_init".}
+proc zip_strerror*(para1: PZip): cstring {.cdecl, importc: "zip_strerror".}
+proc zip_unchange*(para1: PZip, para2: int32): int32 {.cdecl,
     importc: "zip_unchange".}
-proc zip_unchange_all*(para1: PZip): int32 {.cdecl, mydll,
+proc zip_unchange_all*(para1: PZip): int32 {.cdecl,
     importc: "zip_unchange_all".}
-proc zip_unchange_archive*(para1: PZip): int32 {.cdecl, mydll,
+proc zip_unchange_archive*(para1: PZip): int32 {.cdecl,
     importc: "zip_unchange_archive".}
