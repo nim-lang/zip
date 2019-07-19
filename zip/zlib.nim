@@ -10,24 +10,24 @@ else:
   const libz = "libz.so.1"
 
 type
-  Uint* = int32
-  Ulong* = uint32
-  Ulongf* = uint32
+  Uint* {.importc: "uInt", header: "<zlib.h>".} = cuint
+  Ulong* {.importc: "uLong", header: "<zlib.h>".} = uint
+  Ulongf* {.importc: "uLongf", header: "<zlib.h>".} = uint
   Pulongf* = ptr Ulongf
-  ZOffT* = int32
+  ZOffT* {.importc: "z_off_t", header: "<zlib.h>".} = int
   Pbyte* = cstring
   Pbytef* = cstring
   Allocfunc* = proc (p: pointer, items: Uint, size: Uint): pointer{.cdecl.}
   FreeFunc* = proc (p: pointer, address: pointer){.cdecl.}
   InternalState*{.final, pure.} = object
   PInternalState* = ptr InternalState
-  ZStream*{.final, pure.} = object
-    nextIn*: Pbytef
-    availIn*: Uint
-    totalIn*: Ulong
-    nextOut*: Pbytef
-    availOut*: Uint
-    totalOut*: Ulong
+  ZStream*{.final, pure, importc: "z_stream", header: "<zlib.h>".} = object
+    next_in*: Pbytef
+    avail_in*: Uint
+    total_in*: Ulong
+    next_out*: Pbytef
+    avail_out*: Uint
+    total_out*: Ulong
     msg*: Pbytef
     state*: PInternalState
     zalloc*: Allocfunc
@@ -314,7 +314,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
   # run loop until all input is consumed.
   # handle concatenated deflated stream with header.
   while true:
-    z.availIn = (sourceLen - sbytes).int32
+    z.availIn = Uint(sourceLen - sbytes)
 
     # no more input available
     if (sourceLen - sbytes) <= 0: break
@@ -355,7 +355,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
     if (status == Z_STREAM_END):
       # may have another stream concatenated
       if z.availIn != 0:
-        sbytes = sourceLen - z.availIn # add consumed bytes
+        sbytes = sourceLen - int(z.availIn) # add consumed bytes
         if inflateReset(z) != Z_OK: # reset zlib struct and try again
           raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
       else:
@@ -419,7 +419,7 @@ proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
   ## in this case the proc won't modify the buffer.
   ##
   ## Returns true if `buffer` was successfully inflated.
- 
+
   var temp = uncompress(addr(buffer[0]), buffer.len, stream)
   if temp.len != 0:
     swap(buffer, temp)
