@@ -200,7 +200,8 @@ proc extractAll*(z: var ZipArchive, dest: string) =
   for file in walkFiles(z):
     if file.contains("/"):
       createDir(dest / file[0..file.rfind("/")])
-    extractFile(z, file, dest / file)
+    if file[^1] != '/': # current file not a folder
+      extractFile(z, file, dest / file)
 
 when not defined(testing) and isMainModule:
   var zip: ZipArchive
