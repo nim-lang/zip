@@ -226,6 +226,10 @@ proc zip_set_file_comment*(para1: PZip, para2: int32, para3: cstring,
     importc: "zip_set_file_comment".}
 proc zip_source_buffer*(para1: PZip, para2: pointer, para3: int, para4: int32): PZipSource {.
     cdecl, mydll, importc: "zip_source_buffer".}
+proc zip_source_buffer_create*(data:cstring,len:uint64,freep:int32,error:pointer): PZipSource {.cdecl, mydll,
+    importc: "zip_source_buffer_create".}
+proc zip_open_from_source*(source:PZipSource,flags:int32,error:pointer): PZip {.cdecl, mydll,
+    importc: "zip_open_from_source".}
 proc zip_source_file*(para1: PZip, para2: cstring, para3: int, para4: int): PZipSource {.
     cdecl, mydll, importc: "zip_source_file".}
 proc zip_source_filep*(para1: PZip, para2: File, para3: int, para4: int): PZipSource {.

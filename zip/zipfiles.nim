@@ -203,6 +203,15 @@ proc extractAll*(z: var ZipArchive, dest: string) =
     if file[^1] != '/': # current file not a folder
       extractFile(z, file, dest / file)
 
+proc fromBuffer*(z: var ZipArchive,data:string) =
+  var error: int32
+  var zipSource:PZipSource = zip_source_buffer_create(data,len(data).uint64, 1'i32,error.addr) 
+  if isNil(zipSource):
+    raise newException(IOError,$error)
+  z.w = zip_open_from_source(zipSource, 0'i32, error.addr);
+  if isNil(z.w):
+    raise newException(IOError,$error)
+
 when not defined(testing) and isMainModule:
   var zip: ZipArchive
   if not zip.open("nim-0.11.0.zip"):
