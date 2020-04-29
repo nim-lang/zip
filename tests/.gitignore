@@ -1,2 +1,5 @@
 nimcache
 ziptests
+zlibtests
+gziptests
+bzip2tests
