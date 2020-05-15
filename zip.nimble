@@ -16,3 +16,10 @@ task tests, "Run lib tests":
     exec "nim c -r ziptests"
     exec "nim c -r zlibtests"
     exec "nim c -r gziptests"
+
+when defined(nimdistros) and not defined(useLibzipSrc):
+  import distros
+  if detectOs(MacOSX):
+    foreignDep "libzip"
+  else:
+    foreignDep "libzip"

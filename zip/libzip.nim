@@ -194,8 +194,12 @@ proc zip_file_strerror*(para1: PZipFile): cstring {.cdecl, mydll,
     importc: "zip_file_strerror".}
 proc zip_fopen*(para1: PZip, para2: cstring, para3: int32): PZipFile {.cdecl,
     mydll, importc: "zip_fopen".}
-proc zip_fopen_index*(para1: PZip, para2: int32, para3: int32): PZipFile {.
+proc zip_fopen_encrypted*(para1: PZip, para2: cstring, para3: int32,password: cstring): PZipFile {.cdecl,
+    mydll, importc: "zip_fopen_encrypted".}
+proc zip_fopen_index*(para1: PZip, para2: uint, para3: int32): PZipFile {.
     cdecl, mydll, importc: "zip_fopen_index".}
+proc zip_fopen_index_encrypted*(para1: PZip, para2: uint, para3: int32,password: cstring): PZipFile {.
+    cdecl, mydll, importc: "zip_fopen_index_encrypted".}
 proc zip_fread*(para1: PZipFile, para2: pointer, para3: int): int {.
     cdecl, mydll, importc: "zip_fread".}
 proc zip_get_archive_comment*(para1: PZip, para2: ptr int32, para3: int32): cstring {.
@@ -224,6 +228,8 @@ proc zip_set_archive_flag*(para1: PZip, para2: int32, para3: int32): int32 {.
 proc zip_set_file_comment*(para1: PZip, para2: int32, para3: cstring,
                            para4: int32): int32 {.cdecl, mydll,
     importc: "zip_set_file_comment".}
+proc zip_set_default_password*(para1: PZip, password: cstring): int32 {.
+    cdecl, mydll, importc: "zip_set_default_password".}
 proc zip_source_buffer*(para1: PZip, para2: pointer, para3: int, para4: int32): PZipSource {.
     cdecl, mydll, importc: "zip_source_buffer".}
 proc zip_source_buffer_create*(data:cstring,len:uint64,freep:int32,error:pointer): PZipSource {.cdecl, mydll,
