@@ -52,6 +52,8 @@ type
               TFreeFunc: FreeFunc, TZStream: ZStream, TZStreamRec: ZStreamRec].}
 
 const
+  ZLIB_VERSION = "1.2.11"
+
   Z_NO_FLUSH* = 0
   Z_PARTIAL_FLUSH* = 1
   Z_SYNC_FLUSH* = 2
@@ -178,19 +180,19 @@ proc deflateBound*(strm: var ZStream, sourceLen: ULong): ULong {.cdecl,
         dynlib: libz, importc: "deflateBound".}
 
 proc deflateInit(strm: var ZStream, level: cint): cint =
-  result = deflateInitu(strm, level, zlibVersion(), sizeof(ZStream).cint)
+  result = deflateInitu(strm, level, ZLIB_VERSION, sizeof(ZStream).cint)
 
 proc inflateInit(strm: var ZStream): cint =
-  result = inflateInitu(strm, zlibVersion(), sizeof(ZStream).cint)
+  result = inflateInitu(strm, ZLIB_VERSION, sizeof(ZStream).cint)
 
 proc deflateInit2(strm: var ZStream,
                   level, `method`, windowBits, memLevel,
                   strategy: cint): cint =
   result = deflateInit2u(strm, level, `method`, windowBits, memLevel,
-                         strategy, zlibVersion(), sizeof(ZStream).cint)
+                         strategy, ZLIB_VERSION, sizeof(ZStream).cint)
 
 proc inflateInit2(strm: var ZStream, windowBits: cint): cint =
-  result = inflateInit2u(strm, windowBits, zlibVersion(),
+  result = inflateInit2u(strm, windowBits, ZLIB_VERSION,
                          sizeof(ZStream).cint)
 
 proc zlibAllocMem*(appData: pointer, items, size: int): pointer {.cdecl.} =
