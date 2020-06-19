@@ -10,11 +10,11 @@ else:
   const libz = "libz.so.1"
 
 type
-  Uint* = int32
-  Ulong* = uint32
-  Ulongf* = uint32
+  Uint* = cuint
+  Ulong* = culong
+  Ulongf* = culong
   Pulongf* = ptr Ulongf
-  ZOffT* = int32
+  ZOffT* = clong
   Pbyte* = cstring
   Pbytef* = cstring
   Allocfunc* = proc (p: pointer, items: Uint, size: Uint): pointer{.cdecl.}
@@ -33,7 +33,7 @@ type
     zalloc*: Allocfunc
     zfree*: FreeFunc
     opaque*: pointer
-    dataType*: int32
+    dataType*: cint
     adler*: Ulong
     reserved*: Ulong
 
@@ -82,29 +82,29 @@ const
   MAX_WBITS* = 15
 
 proc zlibVersion*(): cstring{.cdecl, dynlib: libz, importc: "zlibVersion".}
-proc deflate*(strm: var ZStream, flush: int32): int32{.cdecl, dynlib: libz,
+proc deflate*(strm: var ZStream, flush: cint): cint{.cdecl, dynlib: libz,
     importc: "deflate".}
-proc deflateEnd*(strm: var ZStream): int32{.cdecl, dynlib: libz,
+proc deflateEnd*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "deflateEnd".}
-proc inflate*(strm: var ZStream, flush: int32): int32{.cdecl, dynlib: libz,
+proc inflate*(strm: var ZStream, flush: cint): cint{.cdecl, dynlib: libz,
     importc: "inflate".}
-proc inflateEnd*(strm: var ZStream): int32{.cdecl, dynlib: libz,
+proc inflateEnd*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "inflateEnd".}
 proc deflateSetDictionary*(strm: var ZStream, dictionary: Pbytef,
-                           dictLength: Uint): int32{.cdecl, dynlib: libz,
+                           dictLength: Uint): cint{.cdecl, dynlib: libz,
     importc: "deflateSetDictionary".}
-proc deflateCopy*(dest, source: var ZStream): int32{.cdecl, dynlib: libz,
+proc deflateCopy*(dest, source: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "deflateCopy".}
-proc deflateReset*(strm: var ZStream): int32{.cdecl, dynlib: libz,
+proc deflateReset*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "deflateReset".}
-proc deflateParams*(strm: var ZStream, level: int32, strategy: int32): int32{.
+proc deflateParams*(strm: var ZStream, level: cint, strategy: cint): cint{.
     cdecl, dynlib: libz, importc: "deflateParams".}
 proc inflateSetDictionary*(strm: var ZStream, dictionary: Pbytef,
-                           dictLength: Uint): int32{.cdecl, dynlib: libz,
+                           dictLength: Uint): cint{.cdecl, dynlib: libz,
     importc: "inflateSetDictionary".}
-proc inflateSync*(strm: var ZStream): int32{.cdecl, dynlib: libz,
+proc inflateSync*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "inflateSync".}
-proc inflateReset*(strm: var ZStream): int32{.cdecl, dynlib: libz,
+proc inflateReset*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "inflateReset".}
 proc compress*(dest: Pbytef, destLen: Pulongf, source: Pbytef, sourceLen: Ulong): cint{.
     cdecl, dynlib: libz, importc: "compress".}
@@ -117,79 +117,79 @@ proc uncompress*(dest: Pbytef, destLen: Pulongf, source: Pbytef,
 proc compressBound*(sourceLen: Ulong): Ulong {.cdecl, dynlib: libz, importc.}
 proc gzopen*(path: cstring, mode: cstring): GzFile{.cdecl, dynlib: libz,
     importc: "gzopen".}
-proc gzdopen*(fd: int32, mode: cstring): GzFile{.cdecl, dynlib: libz,
+proc gzdopen*(fd: cint, mode: cstring): GzFile{.cdecl, dynlib: libz,
     importc: "gzdopen".}
-proc gzsetparams*(thefile: GzFile, level: int32, strategy: int32): int32{.cdecl,
+proc gzsetparams*(thefile: GzFile, level: cint, strategy: cint): cint{.cdecl,
     dynlib: libz, importc: "gzsetparams".}
-proc gzread*(thefile: GzFile, buf: pointer, length: int): int32{.cdecl,
+proc gzread*(thefile: GzFile, buf: pointer, length: cuint): cint{.cdecl,
     dynlib: libz, importc: "gzread".}
-proc gzwrite*(thefile: GzFile, buf: pointer, length: int): int32{.cdecl,
+proc gzwrite*(thefile: GzFile, buf: pointer, length: cuint): cint{.cdecl,
     dynlib: libz, importc: "gzwrite".}
-proc gzprintf*(thefile: GzFile, format: Pbytef): int32{.varargs, cdecl,
+proc gzprintf*(thefile: GzFile, format: Pbytef): cint{.varargs, cdecl,
     dynlib: libz, importc: "gzprintf".}
-proc gzputs*(thefile: GzFile, s: Pbytef): int32{.cdecl, dynlib: libz,
+proc gzputs*(thefile: GzFile, s: Pbytef): cint{.cdecl, dynlib: libz,
     importc: "gzputs".}
-proc gzgets*(thefile: GzFile, buf: Pbytef, length: int32): Pbytef{.cdecl,
+proc gzgets*(thefile: GzFile, buf: Pbytef, length: cint): Pbytef{.cdecl,
     dynlib: libz, importc: "gzgets".}
-proc gzputc*(thefile: GzFile, c: int32): int32 {.cdecl, dynlib: libz,
+proc gzputc*(thefile: GzFile, c: cint): cint {.cdecl, dynlib: libz,
     importc: "gzputc".}
-proc gzgetc*(thefile: GzFile): int32 {.cdecl, dynlib: libz, importc: "gzgetc".}
-proc gzungetc*(c: int32; thefile: GzFile): int32 {.cdecl, dynlib: libz, importc: "gzungetc".}
-proc gzflush*(thefile: GzFile, flush: int32): int32{.cdecl, dynlib: libz,
+proc gzgetc*(thefile: GzFile): cint {.cdecl, dynlib: libz, importc: "gzgetc".}
+proc gzungetc*(c: cint; thefile: GzFile): cint {.cdecl, dynlib: libz, importc: "gzungetc".}
+proc gzflush*(thefile: GzFile, flush: cint): cint{.cdecl, dynlib: libz,
     importc: "gzflush".}
-proc gzseek*(thefile: GzFile, offset: ZOffT, whence: int32): ZOffT{.cdecl,
+proc gzseek*(thefile: GzFile, offset: ZOffT, whence: cint): ZOffT{.cdecl,
     dynlib: libz, importc: "gzseek".}
-proc gzrewind*(thefile: GzFile): int32{.cdecl, dynlib: libz, importc: "gzrewind".}
+proc gzrewind*(thefile: GzFile): cint{.cdecl, dynlib: libz, importc: "gzrewind".}
 proc gztell*(thefile: GzFile): ZOffT{.cdecl, dynlib: libz, importc: "gztell".}
 proc gzeof*(thefile: GzFile): int {.cdecl, dynlib: libz, importc: "gzeof".}
-proc gzclose*(thefile: GzFile): int32{.cdecl, dynlib: libz, importc: "gzclose".}
-proc gzerror*(thefile: GzFile, errnum: var int32): Pbytef{.cdecl, dynlib: libz,
+proc gzclose*(thefile: GzFile): cint{.cdecl, dynlib: libz, importc: "gzclose".}
+proc gzerror*(thefile: GzFile, errnum: var cint): Pbytef{.cdecl, dynlib: libz,
     importc: "gzerror".}
 proc adler32*(adler: Ulong, buf: Pbytef, length: Uint): Ulong{.cdecl,
     dynlib: libz, importc: "adler32".}
   ## **Warning**: Adler-32 requires at least a few hundred bytes to get rolling.
 proc crc32*(crc: Ulong, buf: Pbytef, length: Uint): Ulong{.cdecl, dynlib: libz,
     importc: "crc32".}
-proc deflateInitu*(strm: var ZStream, level: int32, version: cstring,
-                   streamSize: int32): int32{.cdecl, dynlib: libz,
+proc deflateInitu*(strm: var ZStream, level: cint, version: cstring,
+                   streamSize: cint): cint{.cdecl, dynlib: libz,
     importc: "deflateInit_".}
 proc inflateInitu*(strm: var ZStream, version: cstring,
-                   streamSize: int32): int32 {.
+                   streamSize: cint): cint {.
     cdecl, dynlib: libz, importc: "inflateInit_".}
-proc deflateInit*(strm: var ZStream, level: int32): int32
-proc inflateInit*(strm: var ZStream): int32
-proc deflateInit2u*(strm: var ZStream, level: int32, `method`: int32,
-                    windowBits: int32, memLevel: int32, strategy: int32,
-                    version: cstring, streamSize: int32): int32 {.cdecl,
+proc deflateInit*(strm: var ZStream, level: cint): cint
+proc inflateInit*(strm: var ZStream): cint
+proc deflateInit2u*(strm: var ZStream, level: cint, `method`: cint,
+                    windowBits: cint, memLevel: cint, strategy: cint,
+                    version: cstring, streamSize: cint): cint {.cdecl,
                     dynlib: libz, importc: "deflateInit2_".}
-proc inflateInit2u*(strm: var ZStream, windowBits: int32, version: cstring,
-                    streamSize: int32): int32{.cdecl, dynlib: libz,
+proc inflateInit2u*(strm: var ZStream, windowBits: cint, version: cstring,
+                    streamSize: cint): cint{.cdecl, dynlib: libz,
     importc: "inflateInit2_".}
 proc deflateInit2*(strm: var ZStream,
                    level, `method`, windowBits, memLevel,
-                   strategy: int32): int32
-proc inflateInit2*(strm: var ZStream, windowBits: int32): int32
-proc zError*(err: int32): cstring{.cdecl, dynlib: libz, importc: "zError".}
-proc inflateSyncPoint*(z: PZstream): int32{.cdecl, dynlib: libz,
+                   strategy: cint): cint
+proc inflateInit2*(strm: var ZStream, windowBits: cint): cint
+proc zError*(err: cint): cstring{.cdecl, dynlib: libz, importc: "zError".}
+proc inflateSyncPoint*(z: PZstream): cint{.cdecl, dynlib: libz,
     importc: "inflateSyncPoint".}
 proc getCrcTable*(): pointer{.cdecl, dynlib: libz, importc: "get_crc_table".}
 
 proc deflateBound*(strm: var ZStream, sourceLen: ULong): ULong {.cdecl,
         dynlib: libz, importc: "deflateBound".}
 
-proc deflateInit(strm: var ZStream, level: int32): int32 =
+proc deflateInit(strm: var ZStream, level: cint): cint =
   result = deflateInitu(strm, level, zlibVersion(), sizeof(ZStream).cint)
 
-proc inflateInit(strm: var ZStream): int32 =
+proc inflateInit(strm: var ZStream): cint =
   result = inflateInitu(strm, zlibVersion(), sizeof(ZStream).cint)
 
 proc deflateInit2(strm: var ZStream,
                   level, `method`, windowBits, memLevel,
-                  strategy: int32): int32 =
+                  strategy: cint): cint =
   result = deflateInit2u(strm, level, `method`, windowBits, memLevel,
                          strategy, zlibVersion(), sizeof(ZStream).cint)
 
-proc inflateInit2(strm: var ZStream, windowBits: int32): int32 =
+proc inflateInit2(strm: var ZStream, windowBits: cint): cint =
   result = inflateInit2u(strm, windowBits, zlibVersion(),
                          sizeof(ZStream).cint)
 
@@ -226,9 +226,9 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   of ZLIB_STREAM, DETECT_STREAM:
     discard # DETECT_STREAM defaults to ZLIB_STREAM
 
-  var status = deflateInit2(z, level.int32, Z_DEFLATED.int32,
-                               windowBits.int32, Z_MEM_LEVEL.int32,
-                               Z_DEFAULT_STRATEGY.int32)
+  var status = deflateInit2(z, level.cint, Z_DEFLATED.cint,
+                               windowBits.cint, Z_MEM_LEVEL.cint,
+                               Z_DEFAULT_STRATEGY.cint)
   case status
   of Z_OK: discard
   of Z_MEM_ERROR: raise newException(OutOfMemError, "")
@@ -302,7 +302,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
   of GZIP_STREAM:   MAX_WBITS + 16
   of DETECT_STREAM: MAX_WBITS + 32
 
-  var status = inflateInit2(z, wbits.int32)
+  var status = inflateInit2(z, wbits.cint)
 
   case status
   of Z_OK: discard
@@ -314,7 +314,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
   # run loop until all input is consumed.
   # handle concatenated deflated stream with header.
   while true:
-    z.availIn = (sourceLen - sbytes).int32
+    z.availIn = (sourceLen - sbytes).Uint
 
     # no more input available
     if (sourceLen - sbytes) <= 0: break
@@ -355,7 +355,7 @@ proc uncompress*(sourceBuf: cstring, sourceLen: Natural; stream=DETECT_STREAM): 
     if (status == Z_STREAM_END):
       # may have another stream concatenated
       if z.availIn != 0:
-        sbytes = sourceLen - z.availIn # add consumed bytes
+        sbytes = sourceLen - z.availIn.Natural # add consumed bytes
         if inflateReset(z) != Z_OK: # reset zlib struct and try again
           raise newException(ZlibStreamError, "Invalid stream state(" & $status & ") : " & $z.msg)
       else:
