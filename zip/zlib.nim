@@ -36,6 +36,7 @@ type
     dataType*: cint
     adler*: Ulong
     reserved*: Ulong
+  GZHeader*{.final, pure.} = object # not defined yet (see zlib.h)
 
   ZStreamRec* = ZStream
   PZstream* = ptr ZStream
@@ -101,13 +102,36 @@ proc deflateReset*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "deflateReset".}
 proc deflateParams*(strm: var ZStream, level: cint, strategy: cint): cint{.
     cdecl, dynlib: libz, importc: "deflateParams".}
+proc deflateTune*(strm: var ZStream, goodLength, maxLazy, niceLength, maxChain: cint): cint {.
+    cdecl, dynlib: libz, importc: "deflateTune".}
+proc deflatePending*(strm: var ZStream, pending: var cuint, bits: var cint): cint {.
+    cdecl, dynlib: libz, importc: "deflatePending".}
+proc deflatePrime*(strm: var ZStream, bits, value: cint): cint {.
+    cdecl, dynlib: libz, importc: "deflatePrime".}
+proc deflateSetHeader*(strm: var ZStream, head: ptr GZHeader): cint {.
+    cdecl, dynlib: libz, importc: "deflateSetHeader".}
 proc inflateSetDictionary*(strm: var ZStream, dictionary: Pbytef,
                            dictLength: Uint): cint{.cdecl, dynlib: libz,
     importc: "inflateSetDictionary".}
+proc inflateGetDictionary*(strm: var ZStream, dictionary: Pbytef,
+                           dictLength: ptr Uint): cint{.cdecl, dynlib: libz,
+    importc: "inflateGetDictionary".}
 proc inflateSync*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "inflateSync".}
+proc inflateCopy*(dest, source: var ZStream): cint{.cdecl, dynlib: libz,
+    importc: "inflateCopy".}
 proc inflateReset*(strm: var ZStream): cint{.cdecl, dynlib: libz,
     importc: "inflateReset".}
+proc inflateReset2*(strm: var ZStream, windowBits: cint): cint{.cdecl, dynlib: libz,
+    importc: "inflateReset2".}
+proc inflatePrime*(strm: var ZStream, bits: cint, value: cint): cint{.cdecl, dynlib: libz,
+    importc: "inflatePrime".}
+proc inflateMark*(strm: var ZStream): cint{.cdecl, dynlib: libz,
+    importc: "inflateMark".}
+proc inflateGetHeader*(strm: var ZStream, head: ptr GZHeader): cint{.cdecl, dynlib: libz,
+    importc: "inflateGetHeader".}
+proc zlibCompileFlags*(): Ulong{.cdecl, dynlib: libz,
+    importc: "zlibCompileFlags".}
 proc compress*(dest: Pbytef, destLen: Pulongf, source: Pbytef, sourceLen: Ulong): cint{.
     cdecl, dynlib: libz, importc: "compress".}
 proc compress2*(dest: Pbytef, destLen: Pulongf, source: Pbytef,
