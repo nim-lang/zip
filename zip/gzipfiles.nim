@@ -37,7 +37,7 @@ proc fsGetPosition(s: Stream): int =
   result = gztell(GzFileStream(s).f).int
 
 proc fsReadData(s: Stream, buffer: pointer, bufLen: int): int =
-  result = gzread(GzFileStream(s).f, buffer, bufLen).int
+  result = gzread(GzFileStream(s).f, buffer, bufLen.cuint).int
   if result == -1:
     if GzFileStream(s).mode in {fmWrite, fmAppend}:
       raise newException(IOError, "cannot read data from write-only gzip stream!")
@@ -53,7 +53,7 @@ proc fsPeekData(s: Stream, buffer: pointer, bufLen: int): int =
   fsSetPosition(s, pos)
 
 proc fsWriteData(s: Stream, buffer: pointer, bufLen: int) =
-  if gzwrite(GzFileStream(s).f, buffer, bufLen).int != bufLen:
+  if gzwrite(GzFileStream(s).f, buffer, bufLen.cuint).int != bufLen:
     if GzFileStream(s).mode in {fmWrite, fmAppend}:
       raise newException(IOError, "cannot write data to gzip stream!")
     else:
