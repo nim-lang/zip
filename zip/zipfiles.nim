@@ -178,6 +178,8 @@ proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   ## extracts a file from the zip archive `z` to the destination stream.
   var buf: array[BufSize, byte]
   var strm = getStream(z, srcFile)
+  if strm.isNil:
+    raise newException(IOError, "Failed to create stream from " & srcFile)
   while true:
     let bytesRead = strm.readData(addr(buf[0]), buf.len)
     if bytesRead <= 0: break
@@ -205,7 +207,7 @@ proc extractAll*(z: var ZipArchive, dest: string) =
 
 proc fromBuffer*(z: var ZipArchive,data:string) =
   var error: int32
-  var zipSource:PZipSource = zip_source_buffer_create(data,len(data).uint64, 1'i32,error.addr) 
+  var zipSource:PZipSource = zip_source_buffer_create(data,len(data).uint64, 1'i32,error.addr)
   if isNil(zipSource):
     raise newException(IOError,$error)
   z.w = zip_open_from_source(zipSource, 0'i32, error.addr);
