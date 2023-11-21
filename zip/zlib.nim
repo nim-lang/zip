@@ -260,7 +260,7 @@ proc compress*(sourceBuf: cstring; sourceLen: int; level=Z_DEFAULT_COMPRESSION; 
   of Z_MEM_ERROR: raise newException(OutOfMemError, "")
   of Z_STREAM_ERROR: raise newException(ZlibStreamError, "invalid zlib stream parameter!")
   of Z_VERSION_ERROR: raise newException(ZlibStreamError, "zlib version mismatch!")
-  else: raise newException(ZlibStreamError, "Unkown error(" & $status & ") : " & $z.msg)
+  else: raise newException(ZlibStreamError, "Unknown error(" & $status & ") : " & $z.msg)
 
   let space = deflateBound(z, sourceLen.Ulong)
   var compressed = newString(space)
