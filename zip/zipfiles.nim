@@ -9,8 +9,8 @@
 
 ## This module implements a zip archive creator/reader/modifier.
 
-import
-  streams, libzip, times, os, strutils
+import std/[streams, libzip, times, os, strutils, paths]
+
 
 const BufSize = 8 * 1024
 
@@ -188,22 +188,31 @@ proc extractFile*(z: var ZipArchive, srcFile: string, dest: Stream) =
   dest.flush()
   strm.close()
 
-proc extractFile*(z: var ZipArchive, srcFile: string, dest: string) =
-  ## extracts a file from the zip archive `z` to the destination filename.
+proc extractFileImpl(z: var ZipArchive, srcFile: string, dest: string) =
+  # To avoid check duplication when using extractAll
   var file = newFileStream(dest, fmWrite)
   if file.isNil:
     raise newException(IOError, "Failed to create output file: " & dest)
   extractFile(z, srcFile, file)
   file.close()
 
+proc extractFile*(z: var ZipArchive, srcFile: string, dest: string) =
+  ## extracts a file from the zip archive `z` to the destination filename.
+  when not defined(allowRelativePath):
+    raiseOnNonRelativePath(dest)
+  extractFileImpl(z, srcFile, dest)
+
 proc extractAll*(z: var ZipArchive, dest: string) =
   ## extracts all files from archive `z` to the destination directory.
+  when not defined(allowRelativePath):
+    raiseOnNonRelativePath(dest)
+
   createDir(dest)
   for file in walkFiles(z):
     if file.contains("/"):
       createDir(dest / file[0..file.rfind("/")])
     if file[^1] != '/': # current file not a folder
-      extractFile(z, file, dest / file)
+      extractFileImpl(z, file, dest / file)
 
 proc fromBuffer*(z: var ZipArchive,data:string) =
   var error: int32
@@ -213,6 +222,18 @@ proc fromBuffer*(z: var ZipArchive,data:string) =
   z.w = zip_open_from_source(zipSource, 0'i32, error.addr);
   if isNil(z.w):
     raise newException(IOError,$error)
+
+proc checkPath(dest: string) : bool =
+  let
+    dest = expandTilde(dest)
+    path = Path(dest.splitFile().dir)
+    base = paths.getCurrentDir()
+  if isRelativeTo(path, base):
+    result = true
+
+proc raiseOnNonRelativePath(dest: string) =
+  if not checkPath(dest):
+    raise newException(IOError, "Error, trying to extract in non-relative path")
 
 when not defined(testing) and isMainModule:
   var zip: ZipArchive
