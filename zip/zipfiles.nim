@@ -9,7 +9,8 @@
 
 ## This module implements a zip archive creator/reader/modifier.
 
-import std/[streams, libzip, times, os, strutils, paths]
+import std/[streams, times, os, strutils, paths]
+import libzip
 
 
 const BufSize = 8 * 1024
@@ -196,6 +197,18 @@ proc extractFileImpl(z: var ZipArchive, srcFile: string, dest: string) =
   extractFile(z, srcFile, file)
   file.close()
 
+proc checkPath(dest: string) : bool =
+  let
+    dest = expandTilde(dest)
+    path = Path(dest.splitFile().dir)
+    base = paths.getCurrentDir()
+  if isRelativeTo(path, base):
+    result = true
+
+proc raiseOnNonRelativePath(dest: string) =
+  if not checkPath(dest):
+    raise newException(IOError, "Error, trying to extract in non-relative path")
+
 proc extractFile*(z: var ZipArchive, srcFile: string, dest: string) =
   ## extracts a file from the zip archive `z` to the destination filename.
   when not defined(allowRelativePath):
@@ -222,18 +235,6 @@ proc fromBuffer*(z: var ZipArchive,data:string) =
   z.w = zip_open_from_source(zipSource, 0'i32, error.addr);
   if isNil(z.w):
     raise newException(IOError,$error)
-
-proc checkPath(dest: string) : bool =
-  let
-    dest = expandTilde(dest)
-    path = Path(dest.splitFile().dir)
-    base = paths.getCurrentDir()
-  if isRelativeTo(path, base):
-    result = true
-
-proc raiseOnNonRelativePath(dest: string) =
-  if not checkPath(dest):
-    raise newException(IOError, "Error, trying to extract in non-relative path")
 
 when not defined(testing) and isMainModule:
   var zip: ZipArchive
