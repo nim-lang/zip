@@ -40,6 +40,14 @@ proc open*(z: var ZipArchive, filename: string, mode: FileMode = fmRead): bool =
   z.w = zip_open(filename, flags, addr(err))
   z.mode = mode
   result = z.w != nil
+  if err != 0:
+    var e: ref IOError
+    new(e)
+    var buf = newString(256)
+    var l = zip_error_to_str(buf.cstring, 256.csize, err.cint, 0)
+    buf.setLen(l)
+    e.msg = buf
+    raise e
 
 proc close*(z: var ZipArchive) =
   ## Closes a zip file.

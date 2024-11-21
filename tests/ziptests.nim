@@ -8,6 +8,8 @@ test "can compile zipfiles":
 
 test "zipfiles extractAll":
   var filename = "files/тест.xlsx"
+  if not fileExists(filename):
+    filename = "tests/files/тест.xlsx"
   var z: ZipArchive
   if not z.open(filename):
     echo "Opening zip failed"
@@ -34,6 +36,11 @@ test "zipfiles read and write using Stream":
   z.close()
 
   check: outStream.data == "content"
+
+test "non-zip file raises exception":
+  expect IOError:
+    var z: ZipArchive
+    check (not z.open("zzzzzzzz"))
 
 test "zipfiles read and write archive comment":
   let filename = getTempDir() / "zipfiles_test_archive.zip"
