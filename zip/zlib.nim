@@ -445,7 +445,7 @@ proc inflate*(buffer: var string; stream=DETECT_STREAM): bool {.discardable.} =
   ## in this case the proc won't modify the buffer.
   ##
   ## Returns true if `buffer` was successfully inflated.
- 
+
   var temp = uncompress(addr(buffer[0]), buffer.len, stream)
   if temp.len != 0:
     swap(buffer, temp)

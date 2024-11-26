@@ -1,8 +1,8 @@
 # zip
 Wrapper for the zip library
 
-## Usage 
-zip  
+## Usage
+zip
 
 ``` Nim
 import zip/zipfiles
@@ -15,7 +15,7 @@ var z: ZipArchive
 # extracts all files from archive z to the destination directory.
 z.extractAll("files/td")
 ```
-read and write using Stream  
+read and write using Stream
 
 ``` Nim
 import zip/zipfiles
@@ -30,28 +30,28 @@ z.open(filename, fmRead)
 let outStream = newStringStream("")
 z.extractFile("foo.bar", outStream)
 ```
-load archive from memory  
+load archive from memory
 
-``` Nim  
+``` Nim
 var z: ZipArchive
 z.fromBuffer(archiveData)
 ```
 
-zlib 
-``` Nim  
+zlib
+``` Nim
 import zip/zlib
-uncompress(compress(text, stream=RAW_DEFLATE), stream=RAW_DEFLATE) 
-uncompress(compress(text, stream=ZLIB_STREAM), stream=ZLIB_STREAM) 
-uncompress(compress(text, stream=GZIP_STREAM), stream=GZIP_STREAM) 
-uncompress(compress(text, stream=ZLIB_STREAM), stream=DETECT_STREAM) 
-uncompress(compress(text, stream=GZIP_STREAM), stream=DETECT_STREAM) 
+uncompress(compress(text, stream=RAW_DEFLATE), stream=RAW_DEFLATE)
+uncompress(compress(text, stream=ZLIB_STREAM), stream=ZLIB_STREAM)
+uncompress(compress(text, stream=GZIP_STREAM), stream=GZIP_STREAM)
+uncompress(compress(text, stream=ZLIB_STREAM), stream=DETECT_STREAM)
+uncompress(compress(text, stream=GZIP_STREAM), stream=DETECT_STREAM)
 compress(text, stream=RAW_DEFLATE)
 compress(text, stream=GZIP_STREAM)
 compress(text, stream=ZLIB_STREAM)
 ```
 
-gzip 
-``` Nim  
+gzip
+``` Nim
 import zip/gzipfiles
 # read text data
 let arch_gz = newGzFileStream("files/gzipfiletest.txt.gz").readAllAndClose()
@@ -60,7 +60,7 @@ let arch_gz = newGzFileStream("files/gzipfiletest.txt.gz").readAllAndClose()
 
 read from archive and write to new archive.
 
-``` Nim  
+``` Nim
 let w = newGzFileStream("files/gzipfiletest.data.gz", fmWrite)
 let chunk_size = 32
 var num_bytes = text.len
@@ -74,9 +74,9 @@ while true:
 w.close()
 ```
 
-read line by line confirming that behavior of atEnd is consistent with standard FileStream  
+read line by line confirming that behavior of atEnd is consistent with standard FileStream
 
-``` Nim  
+``` Nim
 let gzfs = newGzFileStream("files/gzipfiletest.txt.gz")
   while not gzfs.atEnd():
     discard gzfs.readLine()
